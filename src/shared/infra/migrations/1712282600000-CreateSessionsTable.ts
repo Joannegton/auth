@@ -112,7 +112,7 @@ export class CreateSessionsTable1712282600000 implements MigrationInterface {
             'sessions',
             new TableIndex({
                 name: 'IDX_SESSIONS_IS_REVOKED',
-                columnNames: ['is_revoked'],
+                columnNames: ['revoked'],
             }),
         );
 

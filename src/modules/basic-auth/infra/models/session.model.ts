@@ -7,7 +7,7 @@ import {
     UpdateDateColumn,
 } from 'typeorm';
 import { UserModel } from './user.model';
-import { Model } from 'src/shared/domain/model';
+import { Model } from '../../../../shared/domain/model';
 
 export interface SessionProps {
     id: string;

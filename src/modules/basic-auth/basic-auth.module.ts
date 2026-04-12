@@ -1,15 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
+import { SharedModule } from '../../shared/shared.module';
 import { CriarUsuarioUseCase } from './application/usecases/criar-usuario.usecase';
 import { LoginUseCase } from './application/usecases/login.usecase';
 import { RefreshTokenUseCase } from './application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from './application/usecases/logout.usecase';
 import { GoogleLoginUseCase } from './application/usecases/google-login.usecase';
-import { UserRepositoryImpl } from './infra/repositories/user.repository';
-import { RoleRepositoryImpl } from './infra/repositories/role.repository';
-import { UserMapper } from './infra/mappers/user.mapper';
-import { RoleMapper } from './infra/mappers/roles.mapper';
 import { UserModel } from './infra/models/user.model';
 import { SessionModel } from './infra/models/session.model';
 import { UserRoleModel } from './infra/models/user-roles.model';
@@ -33,17 +30,20 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
             RoleModel,
         ]),
         PassportModule.register({ defaultStrategy: 'jwt' }),
+        SharedModule,
     ],
     controllers: [AuthController, GoogleAuthController],
     providers: [
-        // Use Cases
         CriarUsuarioUseCase,
         LoginUseCase,
         RefreshTokenUseCase,
         LogoutUseCase,
         GoogleLoginUseCase,
-        // Infrastructure Services
         TokenGeneratorServiceImpl,
+        {
+            provide: 'TokenGenerator',
+            useClass: TokenGeneratorServiceImpl,
+        },
         BcryptPasswordEncryptionService,
         {
             provide: PASSWORD_ENCRYPTION_SERVICE_TOKEN,
@@ -57,8 +57,11 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
             provide: 'JWT_ACCESS_TOKEN_MINS_EXPIRES_IN',
             useValue: process.env.JWT_ACCESS_TOKEN_MINS_EXPIRES_IN || '15m',
         },
+        {
+            provide: 'JWT_ACCESS_TOKEN_DAYS_EXPIRES_IN',
+            useValue: process.env.JWT_REFRESH_TOKEN_DAYS_EXPIRES_IN || '7d',
+        },
         GoogleStrategy,
-        // Domain Policies, Repositories, Mappers
         ...Policies,
         ...Repositories,
         ...Mappers,
@@ -66,7 +69,6 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
     exports: [
         'UserRepository',
         'RoleRepository',
-        'SessionRepository',
         TokenGeneratorServiceImpl,
     ],
 })

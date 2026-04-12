@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { UserModel } from './user.model';
 import { RoleModel } from './role.model';
-import { Model } from 'src/shared/domain/model';
+import { Model } from '../../../../shared/domain/model';
 
 export interface UserRoleProps {
     id: string;

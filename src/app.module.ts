@@ -4,9 +4,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BasicAuthModule } from './modules/basic-auth/basic-auth.module';
+import { SharedModule } from './shared/shared.module';
 import { configService } from './shared/config/database.config';
-import { AuditLogService } from './shared/infra/services/audit-log.service';
-import { SessionFingerprintService } from './shared/infra/services/session-fingerprint.service';
 
 @Module({
   imports: [
@@ -18,10 +17,10 @@ import { SessionFingerprintService } from './shared/infra/services/session-finge
         skipIf: () => process.env.NODE_ENV === 'development',
       },
     ]),
+    SharedModule,
     BasicAuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AuditLogService, SessionFingerprintService],
-  exports: [AuditLogService, SessionFingerprintService],
+  providers: [AppService],
 })
 export class AppModule {}

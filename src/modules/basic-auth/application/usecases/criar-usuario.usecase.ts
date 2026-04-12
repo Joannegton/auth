@@ -10,11 +10,10 @@ import { PasswordValidatorPolicy } from '../../domain/policies/Password-validato
 import { UserRoleAssignmentPolicy } from '../../domain/policies/user-role-assignment.policy';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { InvalidPasswordException } from '../../domain/exceptions/invalidPassword.exception';
-import { UserDTO, UserMapper } from '../dtos/user.dto';
-import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { RoleRepository } from '../../domain/repositories/role.repository';
 import type { IPasswordEncryptionService } from '../../domain/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from '../../domain/services/password-encryption.service';
+import type { UserRepository } from '../../domain/repositories/user.repository';
 
 export type CriarUsuarioUseCaseExceptions =
     | InvalidPropsException
@@ -23,13 +22,11 @@ export type CriarUsuarioUseCaseExceptions =
 
 export class CriarUsuarioUseCase {
     constructor(
-        @Inject()
+        @Inject('UserRepository')
         private readonly userRepository: UserRepository,
-        @Inject()
+        @Inject('RoleRepository')
         private readonly roleRepository: RoleRepository,
-        @Inject()
         private readonly passwordValidatorPolicy: PasswordValidatorPolicy,
-        @Inject()
         private readonly userRoleAssignmentPolicy: UserRoleAssignmentPolicy,
         @Inject(PASSWORD_ENCRYPTION_SERVICE_TOKEN)
         private readonly passwordEncryptionService: IPasswordEncryptionService,

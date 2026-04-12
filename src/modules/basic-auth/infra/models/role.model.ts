@@ -7,7 +7,7 @@ import {
     UpdateDateColumn,
 } from 'typeorm';
 import { UserRoleModel } from './user-roles.model';
-import { Model } from 'src/shared/domain/model';
+import { Model } from '../../../../shared/domain/model';
 
 export interface RoleProps {
     id: string;

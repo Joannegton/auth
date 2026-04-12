@@ -9,7 +9,6 @@ export class PasswordValidatorPolicy {
             return R.ok();
         }
 
-        // Validações de força de senha
         const hasMinLength = password.length >= 8;
         const hasMaxLength = password.length <= 128;
         const hasUpperCase = /[A-Z]/.test(password);

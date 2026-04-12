@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { UserRoleModel } from './user-roles.model';
 import { SessionModel } from './session.model';
-import { Model } from 'src/shared/domain/model';
+import { Model } from '../../../../shared/domain/model';
 
 export interface UserProps {
     id: string;

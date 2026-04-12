@@ -12,9 +12,9 @@ class ConfigService {
             username: process.env.DB_USER || 'postgres',
             password: process.env.DB_PASSWORD || 'postgres',
             database: process.env.DB_NAME || 'auth_db',
-            entities: ['src/modules/**/infra/models/*.model.ts'],
-            migrations: ['src/shared/infra/migrations/*.ts'],
-            subscribers: ['src/shared/infra/subscribers/*.ts'],
+            entities: ['dist/modules/**/infra/models/*.model.js'],
+            migrations: ['dist/shared/infra/migrations/*.js'],
+            // subscribers: ['dist/shared/infra/subscribers/*.js'],
             synchronize: false,
             logging: process.env.NODE_ENV === 'development',
         };

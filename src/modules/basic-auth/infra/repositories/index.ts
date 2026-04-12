@@ -1,6 +1,5 @@
 import { RoleRepositoryImpl } from './role.repository';
 import { UserRepositoryImpl } from './user.repository';
-import { SessionRepositoryImpl } from './session.repository';
 
 export const Repositories = [
     {
@@ -10,9 +9,5 @@ export const Repositories = [
     {
         provide: 'RoleRepository',
         useClass: RoleRepositoryImpl,
-    },
-    {
-        provide: 'SessionRepository',
-        useClass: SessionRepositoryImpl,
     },
 ];
