@@ -183,6 +183,10 @@ export class User extends AggregateRoot<UserProps> {
         return this.props.userRoles;
     }
 
+    get sessions(): Session[] | undefined {
+        return this.props.sessions;
+    }
+
     private setEmail(email: string): Result<UserException, void> {
         if (!email || email.trim() === '') {
             return R.error(new UserException('Email é obrigatório'));

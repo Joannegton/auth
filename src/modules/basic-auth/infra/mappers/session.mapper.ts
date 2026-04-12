@@ -46,7 +46,7 @@ export class SessionMapper {
         return R.ok(sessions);
     }
 
-    toModelList(sessions: Session[]): SessionModel[] {
-        return sessions.map((session) => this.toModel(session));
+    toModelList(sessions?: Session[]): SessionModel[] {
+        return sessions ? sessions.map((session) => this.toModel(session)) : [];
     }
 }

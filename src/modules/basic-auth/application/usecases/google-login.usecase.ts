@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { UserRepository } from '../../domain/repositories/user.repository';
+import type { RoleRepository } from '../../domain/repositories/role.repository';
+import type { RequestInfo } from '../../domain/decorators/extract-request-info.decorator';
 import {
     TokenGeneratorServiceImpl,
     AuthTokens,
@@ -12,7 +14,6 @@ import {
 } from '../../../../shared/domain/exceptions';
 import { User } from '../../domain/user';
 import { ROLES } from '../../domain/role';
-import type { RoleRepository } from '../../domain/repositories/role.repository';
 
 export interface GoogleLoginInput {
     googleId: string;
@@ -20,8 +21,6 @@ export interface GoogleLoginInput {
     displayName: string;
     avatarUrl?: string;
 }
-
-export type GenerateTokens = AuthTokens & { refreshExpiresIn: number };
 
 export type GoogleLoginUseCaseExceptions =
     | RepositoryException
@@ -40,23 +39,16 @@ export class GoogleLoginUseCase {
 
     async execute(
         props: GoogleLoginInput,
-        ipAddress: string = 'unknown',
-        userAgent: string = 'unknown',
+        requestInfo: RequestInfo,
     ): ResultAsync<GoogleLoginUseCaseExceptions, AuthTokens> {
         const userGoogle = await this.userRepository.findByGoogleId(
             props.googleId,
         );
 
         if (userGoogle.isOk()) {
-            await this.auditLog.logLoginSuccess(
-                userGoogle.value.id.toString(),
-                ipAddress,
-                userAgent,
-            );
             return await this.generatesSessionAndTokens(
                 userGoogle.value,
-                ipAddress,
-                userAgent,
+                requestInfo,
             );
         }
 
@@ -66,21 +58,11 @@ export class GoogleLoginUseCase {
             user.value.addGoogleInfo(props.googleId, props.avatarUrl);
 
             const saveResult = await this.userRepository.save(user.value);
-            if (saveResult.isErr()) {
-                return R.error(
-                    new RepositoryException('Erro ao atualizar usuário'),
-                );
-            }
+            if (saveResult.isErr()) return R.error(saveResult.error);
 
-            await this.auditLog.logLoginSuccess(
-                user.value.id.toString(),
-                ipAddress,
-                userAgent,
-            );
             return await this.generatesSessionAndTokens(
                 user.value,
-                ipAddress,
-                userAgent,
+                requestInfo,
             );
         }
 
@@ -96,18 +78,15 @@ export class GoogleLoginUseCase {
         });
         if (newUser.isErr()) return R.error(newUser.error);
 
-        return await this.generatesSessionAndTokens(
-            newUser.value,
-            ipAddress,
-            userAgent,
-        );
+        return await this.generatesSessionAndTokens(newUser.value, requestInfo);
     }
 
     private async generatesSessionAndTokens(
         user: User,
-        ipAddress: string,
-        userAgent: string,
+        requestInfo: RequestInfo,
     ): ResultAsync<GoogleLoginUseCaseExceptions, AuthTokens> {
+        const { ipAddress, userAgent } = requestInfo;
+
         const tokens = this.tokenGenerator.generateTokens(
             user.id.toString(),
             user.email,
@@ -116,6 +95,7 @@ export class GoogleLoginUseCase {
         const addSession = user.addSession({
             refreshToken: tokens.refreshToken,
             expiresAt: this.tokenGenerator.getRefreshTokenExpiryDays(),
+            userAgent: userAgent,
         });
         if (addSession.isErr()) return R.error(addSession.error);
 

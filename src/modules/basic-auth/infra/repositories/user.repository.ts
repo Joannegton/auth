@@ -31,7 +31,7 @@ export class UserRepositoryImpl implements UserRepository {
         private readonly userMapper: UserMapper,
     ) {}
 
-    async save(user: User): Promise<Result<RepositoryException, void>> {
+    async save(user: User): ResultAsync<RepositoryException, void> {
         try {
             const model = this.userMapper.toModel(user);
 

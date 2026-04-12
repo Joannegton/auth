@@ -50,6 +50,8 @@ export class UserMapper {
             avatarUrl: domain.avatarUrl,
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,
+            roles: this.userRolesMapper.toModelList(domain.userRoleList),
+            sessions: this.sessionMapper.toModelList(domain.sessions),
         });
         return model;
     }

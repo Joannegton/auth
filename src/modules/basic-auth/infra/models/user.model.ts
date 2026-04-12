@@ -19,6 +19,8 @@ export interface UserProps {
     avatarUrl?: string;
     createdAt: Date;
     updatedAt?: Date;
+    roles: UserRoleModel[];
+    sessions: SessionModel[];
 }
 
 @Entity('users')

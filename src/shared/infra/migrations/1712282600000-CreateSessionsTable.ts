@@ -20,8 +20,8 @@ export class CreateSessionsTable1712282600000 implements MigrationInterface {
                     },
                     {
                         name: 'refresh_token',
-                        type: 'varchar',
-                        length: '512',
+                        type: 'character varying',
+                        length: '2048',
                         isUnique: true,
                         isNullable: false,
                     },
@@ -49,7 +49,7 @@ export class CreateSessionsTable1712282600000 implements MigrationInterface {
                     },
                     {
                         name: 'user_agent',
-                        type: 'varchar',
+                        type: 'character varying',
                         length: '512',
                         isNullable: true,
                     },

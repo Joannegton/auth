@@ -1,17 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { GoogleLoginUseCase } from '../../application/usecases/google-login.usecase';
-import { AuthTokens } from '../services/token-generator.service';
+import { Strategy } from 'passport-google-oauth20';
+import type { GoogleLoginInput } from '../../application/usecases/google-login.usecase';
 
-export interface GoogleProfile {
+interface GoogleProfile {
     id: string;
-    email: string;
     displayName: string;
+    emails: Array<{ value: string; verified: boolean }>;
     photos: Array<{ value: string }>;
-    name: {
-        familyName: string;
-        givenName: string;
+    _json?: {
+        email: string;
+        name: string;
+        picture: string;
     };
 }
 
@@ -19,13 +19,12 @@ export interface GoogleProfile {
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly logger = new Logger(GoogleStrategy.name);
 
-    constructor(private readonly googleLoginUseCase: GoogleLoginUseCase) {
+    constructor() {
         super({
             clientID: process.env.GOOGLE_CLIENT_ID || '',
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
             callbackURL: process.env.GOOGLE_CALLBACK_URL,
             scope: ['email', 'profile'],
-            passReqToCallback: false,
         });
 
         if (
@@ -37,37 +36,22 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     }
 
     async validate(
+        _accessToken: string,
+        _refreshToken: string,
         profile: GoogleProfile,
-        done: VerifyCallback,
-    ): Promise<void> {
-        try {
-            this.logger.log(`[Google] Validating profile: ${profile.email}`);
+    ): Promise<GoogleLoginInput> {
+        const email = profile.emails?.[0]?.value ?? profile._json?.email;
 
-            const result = await this.googleLoginUseCase.execute(
-                {
-                    googleId: profile.id,
-                    email: profile.email,
-                    displayName: profile.displayName,
-                    avatarUrl: profile.photos?.[0]?.value,
-                },
-                'unknown', // IP will be captured in controller
-                'unknown', // User-Agent will be captured in controller
-            );
-
-            if (result.isErr()) {
-                const errorMsg =
-                    result.error.message || 'Authentication failed';
-                this.logger.error(`[Google] Auth failed: ${errorMsg}`);
-                return done(new Error(errorMsg));
-            }
-
-            // Return the tokens as the user object
-            // The controller will extract this
-            this.logger.log(`[Google] Auth successful for: ${profile.email}`);
-            done(null, result.value as any);
-        } catch (error) {
-            this.logger.error('Google auth error:', error);
-            done(error as Error);
+        if (!email) {
+            this.logger.warn(`[GoogleStrategy] Profile sem email: ${profile.id}`);
+            throw new UnauthorizedException('Email é obrigatório');
         }
+
+        return {
+            googleId: profile.id,
+            email,
+            displayName: profile.displayName,
+            avatarUrl: profile.photos?.[0]?.value,
+        };
     }
 }

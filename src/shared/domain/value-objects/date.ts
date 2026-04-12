@@ -23,7 +23,11 @@ export class DateLx extends ValueObject<DateLxProps> {
             dt = DateTime.fromMillis(date);
         }
 
-        instance.setValue(dt);
+        Object.defineProperty(instance, 'props', {
+            value: { timestamp: dt.toMillis() },
+            writable: false,
+            configurable: false,
+        });
 
         return instance;
     }
@@ -49,9 +53,5 @@ export class DateLx extends ValueObject<DateLxProps> {
         const b = other.toDateTime();
 
         return a.hasSame(b, 'day');
-    }
-
-    private setValue(dt: DateTime): void {
-        this.props.timestamp = dt;
     }
 }

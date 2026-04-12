@@ -5,6 +5,8 @@ config();
 
 class ConfigService {
     getTypeOrmConfig(): TypeOrmModuleOptions {
+        const isProduction = process.env.NODE_ENV === 'production';
+
         return {
             type: 'postgres',
             host: process.env.DB_HOST || 'localhost',
@@ -12,9 +14,12 @@ class ConfigService {
             username: process.env.DB_USER || 'postgres',
             password: process.env.DB_PASSWORD || 'postgres',
             database: process.env.DB_NAME || 'auth_db',
-            entities: ['dist/modules/**/infra/models/*.model.js'],
-            migrations: ['dist/shared/infra/migrations/*.js'],
-            // subscribers: ['dist/shared/infra/subscribers/*.js'],
+            entities: isProduction
+                ? ['dist/**/*.model.js']
+                : ['src/**/*.model.ts'],
+            migrations: isProduction
+                ? ['dist/**/*.migration.js']
+                : ['src/**/*.migration.ts'],
             synchronize: false,
             logging: process.env.NODE_ENV === 'development',
         };

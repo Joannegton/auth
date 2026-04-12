@@ -43,6 +43,7 @@ export class UserRoleModel
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     })
+    @JoinColumn({ name: 'user_id' })
     user: UserModel;
 
     @ManyToOne(() => RoleModel, (role) => role.userRoles, {

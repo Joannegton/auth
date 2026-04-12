@@ -1,15 +1,29 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { config } from 'dotenv';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BasicAuthModule } from './modules/basic-auth/basic-auth.module';
 import { SharedModule } from './shared/shared.module';
-import { configService } from './shared/config/database.config';
+
+config();
+
+const typeOrmConfig = {
+  type: 'postgres' as const,
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'auth_db',
+  autoLoadEntities: true,
+  synchronize: false,
+  logging: process.env.NODE_ENV === 'development',
+};
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(configService.getTypeOrmConfig()),
+    TypeOrmModule.forRoot(typeOrmConfig),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,    // 1 minuto

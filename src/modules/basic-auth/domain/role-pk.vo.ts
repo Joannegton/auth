@@ -27,10 +27,12 @@ export class RolePk extends CompositeId<RolePkProps> {
         if (props.isErr())
             return R.error(new RolePkException(props.error.message));
 
-        const setIdResult = instance.setId(props.value.id);
-        const setIdNumResult = instance.setIdNum(props.value.idNum);
-
-        return R.getResult([setIdResult, setIdNumResult], instance);
+        Object.defineProperty(instance, 'props', {
+            value: props.value,
+            writable: false,
+            configurable: false,
+        });
+        return R.ok(instance);
     }
 
     static build(id: string, idNum: number): Result<Error, RolePk> {
@@ -43,30 +45,5 @@ export class RolePk extends CompositeId<RolePkProps> {
 
     get idNum(): number {
         return this.props.idNum;
-    }
-
-    private setId(id: string): Result<RolePkException, void> {
-        if (!id || typeof id !== 'string' || id.trim() === '') {
-            return R.error(
-                new RolePkException(
-                    `CompositeId: id deve ser string não vazia`,
-                ),
-            );
-        }
-
-        this.props.id = id;
-        return R.ok();
-    }
-
-    private setIdNum(idNum: number): Result<RolePkException, void> {
-        if (idNum <= 0 || !Number.isInteger(idNum)) {
-            return R.error(
-                new RolePkException(
-                    `CompositeId: idNum deve ser número inteiro positivo`,
-                ),
-            );
-        }
-        this.props.idNum = idNum;
-        return R.ok();
     }
 }
