@@ -21,10 +21,13 @@ if ! npm run build 2>&1 | head -20; then
 fi
 
 echo "[2] Setup database..."
-if ! npm run db:setup 2>&1 | head -20; then
+if ! npm run db:setup 2>&1 | head -30; then
     echo -e "${RED}[ERRO] Falha ao setup do banco${NC}"
     exit 1
 fi
+
+sleep 1
+
 
 echo "[3] Iniciando servidor..."
 npm run start:prod > /tmp/server.log 2>&1 &
