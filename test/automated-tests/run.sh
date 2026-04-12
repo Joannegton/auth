@@ -105,16 +105,12 @@ curl -s -X POST http://localhost:5000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@test.com","password":"Pass@123"}' > /tmp/test5_response.json
 
-echo "[DEBUG] Resposta do login:"
-cat /tmp/test5_response.json | head -3
-
 if grep -q "accessToken" /tmp/test5_response.json; then
     echo -e "${GREEN}[OK]${NC} TESTE 5: Login com sucesso"
     ((PASS++))
     # Extrai tokens
     GLOBAL_REFRESH_TOKEN=$(cat /tmp/test5_response.json | grep -o '"refreshToken":"[^"]*' | head -1 | cut -d'"' -f4)
     GLOBAL_ACCESS_TOKEN=$(cat /tmp/test5_response.json | grep -o '"accessToken":"[^"]*' | head -1 | cut -d'"' -f4)
-    echo "[DEBUG] Token extraído (primeiros 50 chars): ${GLOBAL_ACCESS_TOKEN:0:50}..."
 else
     echo -e "${RED}[FAIL]${NC} TESTE 5: Login"
     ((FAIL++))
@@ -154,12 +150,9 @@ test_case "TESTE 9: GET /auth/public-key" $?
 
 # Teste 10: Refresh com token válido
 if [ -n "$GLOBAL_REFRESH_TOKEN" ]; then
-    echo "[DEBUG] TESTE 10: Refresh token disponível"
     curl -s -X POST http://localhost:5000/auth/refresh \
       -H "Content-Type: application/json" \
       -d "{\"refreshToken\":\"$GLOBAL_REFRESH_TOKEN\"}" > /tmp/test10_response.json
-    echo "[DEBUG] Resposta refresh:"
-    cat /tmp/test10_response.json | head -3
     grep -q "accessToken" /tmp/test10_response.json
     test_case "TESTE 10: Refresh token válido" $?
 else
@@ -169,11 +162,8 @@ fi
 
 # Teste 11: Logout com token válido
 if [ -n "$GLOBAL_ACCESS_TOKEN" ]; then
-    echo "[DEBUG] TESTE 11: Access token disponível"
     curl -s -X POST http://localhost:5000/auth/logout \
       -H "Authorization: Bearer $GLOBAL_ACCESS_TOKEN" > /tmp/test11_response.json
-    echo "[DEBUG] Resposta logout:"
-    cat /tmp/test11_response.json | head -3
     grep -q "data" /tmp/test11_response.json
     test_case "TESTE 11: POST /auth/logout" $?
 else
@@ -190,34 +180,22 @@ echo ""
 echo -e "${YELLOW}=== TESTES DE HEADERS ===${NC}"
 
 # Teste 13: CORS headers (precisa do header Origin na requisição)
-echo "[DEBUG] TESTE 13: Verificando CORS headers..."
 CORS_RESPONSE=$(curl -s -i -H "Origin: http://localhost:3000" http://localhost:5000/)
-echo "[DEBUG] Headers da resposta GET / com Origin:"
-echo "$CORS_RESPONSE" | grep -i "access-control\|vary"
 CORS_HEADER=$(echo "$CORS_RESPONSE" | grep -i "access-control-allow-origin" | wc -l)
-echo "[DEBUG] CORS_HEADER count: $CORS_HEADER"
 [ $CORS_HEADER -gt 0 ]
 test_case "TESTE 13: Header CORS presente" $?
 
 # Teste 14: Content-Type em sucesso
-echo "[DEBUG] TESTE 14: Verificando Content-Type..."
 CONTENT_RESPONSE=$(curl -s -i -X POST http://localhost:5000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@test.com","password":"Pass@123"}')
-echo "[DEBUG] Headers da resposta POST /auth/login:"
-echo "$CONTENT_RESPONSE" | head -15
 CONTENT_TYPE=$(echo "$CONTENT_RESPONSE" | grep -i "^content-type:" | head -1)
-echo "[DEBUG] Content-Type header: $CONTENT_TYPE"
 echo "$CONTENT_TYPE" | grep -q "application/json"
 test_case "TESTE 14: Content-Type application/json" $?
 
 # Teste 15: Security headers (Helmet)
-echo "[DEBUG] TESTE 15: Verificando Security headers..."
 SECURITY_RESPONSE=$(curl -s -I http://localhost:5000/)
-echo "[DEBUG] Headers de segurança:"
-echo "$SECURITY_RESPONSE" | grep -E "X-Content-Type-Options|X-Frame-Options|Strict-Transport-Security|X-XSS-Protection"
 SECURITY_HEADERS=$(echo "$SECURITY_RESPONSE" | grep -E "X-Content-Type-Options|X-Frame-Options|Strict-Transport-Security" | wc -l)
-echo "[DEBUG] SECURITY_HEADERS count: $SECURITY_HEADERS"
 [ $SECURITY_HEADERS -ge 2 ]
 test_case "TESTE 15: Security headers presentes (Helmet)" $?
 
@@ -226,34 +204,15 @@ echo ""
 echo -e "${YELLOW}=== TESTES DE AUTORIZACAO ===${NC}"
 
 # Teste 16: Logout sem token (deve retornar 401)
-echo "[DEBUG] TESTE 16: Logout sem token..."
 LOGOUT_RESPONSE_16=$(curl -s -w "\n%{http_code}" -X POST http://localhost:5000/auth/logout)
 LOGOUT_STATUS=$(echo "$LOGOUT_RESPONSE_16" | tail -1)
-LOGOUT_BODY=$(echo "$LOGOUT_RESPONSE_16" | head -1)
-echo "[DEBUG] Status: $LOGOUT_STATUS"
-echo "[DEBUG] Body: $LOGOUT_BODY"
 [ "$LOGOUT_STATUS" = "401" ]
 test_case "TESTE 16: Logout sem token retorna 401" $?
 
 # Teste 17: Token inválido retorna 401
-echo "[DEBUG] TESTE 17: Token inválido..."
-echo "[DEBUG] Enviando: curl -X POST http://localhost:5000/auth/logout -H 'Authorization: Bearer invalid.token.here'"
 INVALID_TOKEN_RESPONSE=$(curl -s -i -X POST http://localhost:5000/auth/logout \
   -H "Authorization: Bearer invalid.token.here")
-echo "[DEBUG] Resposta completa do TESTE 17:"
-echo "$INVALID_TOKEN_RESPONSE" | head -20
 INVALID_TOKEN_STATUS=$(echo "$INVALID_TOKEN_RESPONSE" | grep "^HTTP" | grep -o "[0-9]\{3\}")
-INVALID_TOKEN_BODY=$(echo "$INVALID_TOKEN_RESPONSE" | tail -1)
-echo "[DEBUG] Status extraído: $INVALID_TOKEN_STATUS"
-echo "[DEBUG] Body: $INVALID_TOKEN_BODY"
-
-echo ""
-echo "[DEBUG] Comparação:"
-echo "[DEBUG] - Bearer vazio retorna 401 (correto)"
-EMPTY_BEARER=$(curl -s -w "%{http_code}" -X POST http://localhost:5000/auth/logout -H "Authorization: Bearer ")
-echo "[DEBUG] - Bearer vazio status: $EMPTY_BEARER"
-echo "[DEBUG] - Bearer invalid.token.here retorna $INVALID_TOKEN_STATUS (esperado: 401)"
-
 [ "$INVALID_TOKEN_STATUS" = "401" ]
 test_case "TESTE 17: Token inválido retorna 401" $?
 
@@ -304,12 +263,10 @@ echo "$ERROR_RESPONSE" | grep -q "statusCode\|message"
 test_case "TESTE 22: Erro tem statusCode e message" $?
 
 # Teste 23: Resposta de sucesso tem data
-echo "[DEBUG] TESTE 23: Verificando estrutura de sucesso..."
 UNIQUE_EMAIL="success_$(date +%s)@test.com"
 SUCCESS_RESPONSE=$(curl -s -X POST http://localhost:5000/auth/register \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$UNIQUE_EMAIL\",\"password\":\"Pass@123\"}")
-echo "[DEBUG] Resposta success: $SUCCESS_RESPONSE"
 echo "$SUCCESS_RESPONSE" | grep -q "data"
 test_case "TESTE 23: Sucesso retorna data" $?
 
