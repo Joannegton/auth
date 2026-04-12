@@ -50,7 +50,6 @@ export class UserRepositoryImpl implements UserRepository {
         try {
             const userModel = await this.userRepository.findOne({
                 where: { email },
-                relations: ['sessions', 'roles', 'roles.role'],
             });
 
             if (!userModel) {
@@ -77,7 +76,6 @@ export class UserRepositoryImpl implements UserRepository {
         try {
             const userModel = await this.userRepository.findOne({
                 where: { id },
-                relations: ['sessions', 'roles', 'roles.role'],
             });
 
             if (!userModel) {
@@ -106,7 +104,6 @@ export class UserRepositoryImpl implements UserRepository {
         try {
             const userModel = await this.userRepository.findOne({
                 where: { googleId },
-                relations: ['sessions', 'roles', 'roles.role'],
             });
 
             if (!userModel) {
