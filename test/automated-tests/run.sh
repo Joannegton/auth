@@ -47,6 +47,8 @@ while ! curl -s http://localhost:5000/ > /dev/null 2>&1; do
 done
 
 echo -e "${GREEN}[OK] Servidor online!${NC}"
+sleep 2
+
 echo ""
 echo "================================================================"
 echo "TESTES"
