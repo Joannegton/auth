@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 import type { UserRepository } from '../../domain/repositories/user.repository';
+import type { RequestInfo } from '../../domain/decorators/extract-request-info.decorator';
 import { AuditLogService } from '../../../../shared/infra/services/audit-log.service';
 import { R, ResultAsync } from '../../../../shared/domain/result';
 import { RepositoryException } from '../../../../shared/domain/exceptions';
@@ -17,10 +17,9 @@ export class LogoutUseCase {
 
     async execute(
         userId: string,
-        req?: Request,
+        requestInfo: RequestInfo,
     ): ResultAsync<LogoutUseCaseExceptions, void> {
-        const ipAddress = req?.ip || 'unknown';
-        const userAgent = req?.get('user-agent') || 'unknown';
+        const { ipAddress, userAgent } = requestInfo;
 
         const user = await this.userRepository.findById(userId);
         if (user.isErr()) {

@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { IPasswordEncryptionService } from '../../domain/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from '../../domain/services/password-encryption.service';
@@ -7,6 +6,7 @@ import {
     TokenGeneratorServiceImpl,
     AuthTokens,
 } from '../../infra/services/token-generator.service';
+import type { RequestInfo } from '../../domain/decorators/extract-request-info.decorator';
 import { AuditLogService } from '../../../../shared/infra/services/audit-log.service';
 import { R, ResultAsync } from '../../../../shared/domain/result';
 import {
@@ -37,10 +37,9 @@ export class LoginUseCase {
 
     async execute(
         props: LoginProps,
-        req?: Request,
+        requestInfo: RequestInfo,
     ): ResultAsync<LoginUseCaseExceptions, AuthTokens> {
-        const ipAddress = req?.ip || 'unknown';
-        const userAgent = req?.get('user-agent') || 'unknown';
+        const { ipAddress, userAgent } = requestInfo;
 
         const user = await this.userRepository.findByEmail(
             props.email.toLowerCase().trim(),

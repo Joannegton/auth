@@ -6,7 +6,6 @@ import {
     HttpCode,
     HttpStatus,
     UseGuards,
-    Request,
 } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { CriarUsuarioUseCase } from '../../application/usecases/criar-usuario.usecase';
@@ -16,6 +15,10 @@ import { LogoutUseCase } from '../../application/usecases/logout.usecase';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { LoginDto, RefreshTokenDto } from '../dtos/login.dto';
 import { ExtractUserId } from '../../domain/decorators/extract-user-id.decorator';
+import {
+    ExtractRequestInfo,
+    type RequestInfo,
+} from '../../domain/decorators/extract-request-info.decorator';
 import { Controller } from 'src/shared/infra/http/controller';
 import { TokenGeneratorServiceImpl } from '../../infra/services/token-generator.service';
 import { JwtAuthGuard } from 'src/shared/infra/guards/jwt-auth.guard';
@@ -52,13 +55,16 @@ export class AuthController extends Controller {
     @Post('login')
     @HttpCode(HttpStatus.OK)
     @UseGuards(ThrottlerGuard)
-    async login(@Body() loginDto: LoginDto, @Request() req) {
+    async login(
+        @Body() loginDto: LoginDto,
+        @ExtractRequestInfo() requestInfo: RequestInfo,
+    ) {
         const result = await this.loginUseCase.execute(
             {
                 email: loginDto.email,
                 password: loginDto.password,
             },
-            req,
+            requestInfo,
         );
 
         return this.buildResponse(result);
@@ -77,8 +83,11 @@ export class AuthController extends Controller {
     @Post('logout')
     @HttpCode(HttpStatus.OK)
     @UseGuards(JwtAuthGuard)
-    async logout(@Request() req) {
-        const result = await this.logoutUseCase.execute(req.user.sub, req);
+    async logout(
+        @ExtractUserId() userId: string,
+        @ExtractRequestInfo() requestInfo: RequestInfo,
+    ) {
+        const result = await this.logoutUseCase.execute(userId, requestInfo);
 
         return this.buildResponse(result);
     }
