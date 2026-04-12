@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Read(//d/Users/Bolacha/Projetos/microservices/auth/**)",
+      "Bash(mkdir -p .secrets)",
+      "Bash(openssl genrsa:*)",
+      "Bash(openssl rsa:*)",
+      "Read(//d D:/Users/Bolacha/Projetos/microservices/**)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Read(//tmp/**)",
+      "Bash(npm test:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}
