@@ -1,7 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { TokenGeneratorService } from '../../domain/services/token-generator.service';
 import { ServiceException } from 'src/shared/domain/exceptions';
 import { R, Result } from 'src/shared/domain/result';
@@ -36,22 +34,26 @@ export class TokenGeneratorServiceImpl implements TokenGeneratorService {
 
     private loadRsaKeys(): void {
         try {
-            const keysDir = process.env.KEYS_DIR || '.secrets';
-            this.privateKey = fs.readFileSync(
-                path.join(keysDir, 'private.pem'),
-                'utf-8',
-            );
-            this.publicKey = fs.readFileSync(
-                path.join(keysDir, 'public.pem'),
-                'utf-8',
-            );
-            this.logger.log('chaves de tokens carregado com sucesso');
+            const envPrivateKey = process.env.JWT_PRIVATE_KEY;
+            const envPublicKey = process.env.JWT_PUBLIC_KEY;
+
+            if (!envPrivateKey || !envPublicKey) {
+                throw new Error(
+                    'JWT_PRIVATE_KEY e JWT_PUBLIC_KEY são obrigatórios',
+                );
+            }
+
+            this.privateKey = envPrivateKey.replace(/\\n/g, '\n');
+            this.publicKey = envPublicKey.replace(/\\n/g, '\n');
+            this.logger.log('Chaves JWT carregadas com sucesso do environment');
         } catch (error) {
             this.logger.error(
-                'Falha ao carregar chaves de tokens',
+                'Falha ao carregar chaves JWT',
                 error instanceof Error ? error.message : String(error),
             );
-            throw new Error('Falha ao carregar chaves de tokens');
+            throw new Error(
+                'Falha ao carregar chaves JWT - defina JWT_PRIVATE_KEY e JWT_PUBLIC_KEY no .env',
+            );
         }
     }
 
