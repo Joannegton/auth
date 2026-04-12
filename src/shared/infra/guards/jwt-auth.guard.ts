@@ -3,6 +3,7 @@ import {
     CanActivate,
     ExecutionContext,
     UnauthorizedException,
+    Logger,
 } from '@nestjs/common';
 import { TokenGeneratorServiceImpl } from 'src/modules/basic-auth/infra/services/token-generator.service';
 
@@ -17,6 +18,8 @@ import { TokenGeneratorServiceImpl } from 'src/modules/basic-auth/infra/services
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+    private readonly logger = new Logger(JwtAuthGuard.name);
+
     constructor(private tokenGenerator: TokenGeneratorServiceImpl) {}
 
     canActivate(context: ExecutionContext): boolean {
@@ -34,13 +37,12 @@ export class JwtAuthGuard implements CanActivate {
             );
         }
 
-        const payload = this.tokenGenerator.verifyToken(token);
-        if (!payload) {
+        const payloadResult = this.tokenGenerator.verifyToken(token);
+        if (payloadResult.isErr()) {
             throw new UnauthorizedException('Invalid or expired token');
         }
 
-        // Attach user to request for downstream handlers
-        request.user = payload;
+        request.user = payloadResult.value;
 
         return true;
     }

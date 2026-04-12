@@ -29,7 +29,7 @@ async function bootstrap() {
     ).split(',');
     app.enableCors({
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
+            if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'test') {
                 callback(null, true);
             } else {
                 callback(new Error(`CORS not allowed for origin: ${origin}`));
@@ -38,6 +38,7 @@ async function bootstrap() {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
         allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Type'],
         maxAge: 3600,
     });
 
