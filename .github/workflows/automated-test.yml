@@ -47,6 +47,10 @@ jobs:
           NODE_ENV: test
           JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
           JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CALLBACK_URL: http://localhost:5000/auth/google/callback
+          CLIENT_REDIRECT_URL: http://localhost:5000/
         run: bash test/automated-tests/run.sh
 
       - name: Upload test results
