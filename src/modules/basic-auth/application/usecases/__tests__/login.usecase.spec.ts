@@ -1,43 +1,44 @@
 import { LoginUseCase } from '../login.usecase';
-import { TokenGeneratorService } from '../../infra/services/token-generator.service';
 import { AuditLogService } from '../../../../../shared/infra/services/audit-log.service';
 import { R } from '../../../../../shared/domain/result';
 import type { IPasswordEncryptionService } from '../../domain/services/password-encryption.service';
+import type { RequestInfo } from '../../domain/decorators/extract-request-info.decorator';
 
 describe('LoginUseCase', () => {
     let useCase: LoginUseCase;
     let mockUserRepository: any;
-    let mockSessionRepository: any;
-    let mockTokenGenerator: jest.Mocked<TokenGeneratorService>;
-    let mockAuditLog: jest.Mocked<AuditLogService>;
-    let mockPasswordEncryption: jest.Mocked<IPasswordEncryptionService>;
+    let mockTokenGenerator: any;
+    let mockAuditLog: any;
+    let mockPasswordEncryption: any;
+    let requestInfo: RequestInfo;
 
     beforeEach(() => {
         mockUserRepository = {
-            findByEmail: jest.fn(),
-        };
-
-        mockSessionRepository = {
-            create: jest.fn(),
+            findForLogin: jest.fn(),
+            save: jest.fn(),
         };
 
         mockTokenGenerator = {
             generateTokens: jest.fn(),
-        } as any;
+            getRefreshTokenExpiryDays: jest.fn().mockReturnValue(7),
+        };
 
         mockAuditLog = {
             logLoginSuccess: jest.fn(),
             logLoginFailure: jest.fn(),
-        } as any;
+        };
 
         mockPasswordEncryption = {
-            hashPassword: jest.fn(),
             comparePassword: jest.fn(),
-        } as any;
+        };
+
+        requestInfo = {
+            ipAddress: '192.168.1.1',
+            userAgent: 'Mozilla/5.0',
+        };
 
         useCase = new LoginUseCase(
             mockUserRepository,
-            mockSessionRepository,
             mockTokenGenerator,
             mockAuditLog,
             mockPasswordEncryption,
@@ -51,6 +52,8 @@ describe('LoginUseCase', () => {
                 id: 'user-123',
                 email: 'test@example.com',
                 password: 'hashed-password',
+                toString: () => 'user-123',
+                addSession: jest.fn().mockReturnValue(R.ok({})),
             };
 
             const tokens = {
@@ -59,21 +62,15 @@ describe('LoginUseCase', () => {
                 expiresIn: 900,
             };
 
-            const mockSession = {
-                id: 'session-123',
-                refreshToken: 'refresh-token-123',
-                userId: 'user-123',
-                expiresAt: new Date(),
-            };
-
-            mockUserRepository.findByEmail.mockResolvedValue(R.ok(user));
+            mockUserRepository.findForLogin.mockResolvedValue(R.ok(user));
             mockPasswordEncryption.comparePassword.mockResolvedValue(true);
             mockTokenGenerator.generateTokens.mockReturnValue(tokens);
-            mockSessionRepository.create.mockResolvedValue(R.ok(mockSession));
+            mockUserRepository.save.mockResolvedValue(R.ok(user));
 
             // Act
             const result = await useCase.execute(
                 { email: 'test@example.com', password: 'correctPassword123' },
+                requestInfo,
             );
 
             // Assert
@@ -81,16 +78,24 @@ describe('LoginUseCase', () => {
             if (result.isOk()) {
                 expect(result.value).toEqual(tokens);
             }
-            expect(mockSessionRepository.create).toHaveBeenCalledWith(
+            expect(mockUserRepository.findForLogin).toHaveBeenCalledWith('test@example.com');
+            expect(mockPasswordEncryption.comparePassword).toHaveBeenCalledWith(
+                'correctPassword123',
+                'hashed-password',
+            );
+            expect(mockTokenGenerator.generateTokens).toHaveBeenCalledWith(
+                'user-123',
+                'test@example.com',
+            );
+            expect(user.addSession).toHaveBeenCalledWith(
                 expect.objectContaining({
                     refreshToken: 'refresh-token-123',
-                    userId: 'user-123',
                 }),
             );
             expect(mockAuditLog.logLoginSuccess).toHaveBeenCalledWith(
                 'user-123',
-                'unknown',
-                'unknown',
+                '192.168.1.1',
+                'Mozilla/5.0',
             );
             expect(mockAuditLog.logLoginFailure).not.toHaveBeenCalled();
         });
@@ -103,22 +108,24 @@ describe('LoginUseCase', () => {
                 id: 'user-123',
                 email: 'test@example.com',
                 password: 'hashed-password',
+                toString: () => 'user-123',
             };
 
-            mockUserRepository.findByEmail.mockResolvedValue(R.ok(user));
+            mockUserRepository.findForLogin.mockResolvedValue(R.ok(user));
             mockPasswordEncryption.comparePassword.mockResolvedValue(false);
 
             // Act
             const result = await useCase.execute(
                 { email: 'test@example.com', password: 'wrongPassword' },
+                requestInfo,
             );
 
             // Assert
             expect(result.isErr()).toBe(true);
             expect(mockAuditLog.logLoginFailure).toHaveBeenCalledWith(
                 'test@example.com',
-                'unknown',
-                'unknown',
+                '192.168.1.1',
+                'Mozilla/5.0',
                 'Invalid password',
             );
             expect(mockAuditLog.logLoginSuccess).not.toHaveBeenCalled();
@@ -126,21 +133,22 @@ describe('LoginUseCase', () => {
 
         it('should log failure on user not found', async () => {
             // Arrange
-            mockUserRepository.findByEmail.mockResolvedValue(
+            mockUserRepository.findForLogin.mockResolvedValue(
                 R.error(new Error('User not found')),
             );
 
             // Act
             const result = await useCase.execute(
                 { email: 'nonexistent@example.com', password: 'password' },
+                requestInfo,
             );
 
             // Assert
             expect(result.isErr()).toBe(true);
             expect(mockAuditLog.logLoginFailure).toHaveBeenCalledWith(
                 'nonexistent@example.com',
-                'unknown',
-                'unknown',
+                '192.168.1.1',
+                'Mozilla/5.0',
                 'User not found',
             );
         });
@@ -151,21 +159,23 @@ describe('LoginUseCase', () => {
                 id: 'user-456',
                 email: 'social@example.com',
                 password: null,  // Usuário registrado via Google
+                toString: () => 'user-456',
             };
 
-            mockUserRepository.findByEmail.mockResolvedValue(R.ok(user));
+            mockUserRepository.findForLogin.mockResolvedValue(R.ok(user));
 
             // Act
             const result = await useCase.execute(
                 { email: 'social@example.com', password: 'anything' },
+                requestInfo,
             );
 
             // Assert
             expect(result.isErr()).toBe(true);
             expect(mockAuditLog.logLoginFailure).toHaveBeenCalledWith(
                 'social@example.com',
-                'unknown',
-                'unknown',
+                '192.168.1.1',
+                'Mozilla/5.0',
                 'User has no password',
             );
         });
@@ -178,31 +188,27 @@ describe('LoginUseCase', () => {
                 id: 'user-123',
                 email: 'test@example.com',
                 password: 'hashed-password',
+                toString: () => 'user-123',
+                addSession: jest.fn().mockReturnValue(R.ok({})),
             };
 
-            const mockSession = {
-                id: 'session-123',
-                refreshToken: 'refresh',
-                userId: 'user-123',
-                expiresAt: new Date(),
-            };
-
-            mockUserRepository.findByEmail.mockResolvedValue(R.ok(user));
+            mockUserRepository.findForLogin.mockResolvedValue(R.ok(user));
             mockPasswordEncryption.comparePassword.mockResolvedValue(true);
             mockTokenGenerator.generateTokens.mockReturnValue({
                 accessToken: 'token',
                 refreshToken: 'refresh',
                 expiresIn: 900,
-            } as any);
-            mockSessionRepository.create.mockResolvedValue(R.ok(mockSession));
+            });
+            mockUserRepository.save.mockResolvedValue(R.ok(user));
 
             // Act
             await useCase.execute(
                 { email: '  TEST@EXAMPLE.COM  ', password: 'password123' },
+                requestInfo,
             );
 
             // Assert
-            expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
+            expect(mockUserRepository.findForLogin).toHaveBeenCalledWith(
                 'test@example.com',
             );
         });

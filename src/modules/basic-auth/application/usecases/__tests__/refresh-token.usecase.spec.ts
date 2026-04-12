@@ -5,8 +5,7 @@ import { R } from '../../../../../shared/domain/result';
 describe('RefreshTokenUseCase', () => {
     let useCase: RefreshTokenUseCase;
     let mockUserRepository: any;
-    let mockSessionRepository: any;
-    let mockTokenGenerator: jest.Mocked<TokenGeneratorService>;
+    let mockTokenGenerator: any;
     let mockAuditLog: any;
 
     beforeEach(() => {
@@ -14,23 +13,17 @@ describe('RefreshTokenUseCase', () => {
             findById: jest.fn(),
         };
 
-        mockSessionRepository = {
-            isValid: jest.fn(),
-            create: jest.fn(),
-        };
-
         mockTokenGenerator = {
             verifyToken: jest.fn(),
             generateTokens: jest.fn(),
-        } as any;
+        };
 
         mockAuditLog = {
             logTokenRefresh: jest.fn(),
-        } as any;
+        };
 
         useCase = new RefreshTokenUseCase(
             mockUserRepository,
-            mockSessionRepository,
             mockTokenGenerator,
             mockAuditLog,
         );
@@ -49,6 +42,8 @@ describe('RefreshTokenUseCase', () => {
             const user = {
                 id: 'user-123',
                 email: 'test@example.com',
+                toString: () => 'user-123',
+                validateSession: jest.fn().mockReturnValue(true),
             };
 
             const newTokens = {
@@ -57,18 +52,9 @@ describe('RefreshTokenUseCase', () => {
                 expiresIn: 900,
             };
 
-            const newSession = {
-                id: 'session-456',
-                refreshToken: 'new-refresh-token',
-                userId: 'user-123',
-                expiresAt: new Date(),
-            };
-
-            mockTokenGenerator.verifyToken.mockReturnValue(payload);
-            mockSessionRepository.isValid.mockResolvedValue(R.ok(true));
+            mockTokenGenerator.verifyToken.mockReturnValue(R.ok(payload));
             mockUserRepository.findById.mockResolvedValue(R.ok(user));
             mockTokenGenerator.generateTokens.mockReturnValue(newTokens);
-            mockSessionRepository.create.mockResolvedValue(R.ok(newSession));
 
             // Act
             const result = await useCase.execute({
@@ -80,15 +66,8 @@ describe('RefreshTokenUseCase', () => {
             if (result.isOk()) {
                 expect(result.value).toEqual(newTokens);
             }
-            expect(mockSessionRepository.isValid).toHaveBeenCalledWith(
-                'valid-refresh-token',
-            );
-            expect(mockSessionRepository.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    refreshToken: 'new-refresh-token',
-                    userId: 'user-123',
-                }),
-            );
+            expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
+            expect(user.validateSession).toHaveBeenCalledWith('valid-refresh-token');
             expect(mockTokenGenerator.generateTokens).toHaveBeenCalledWith(
                 'user-123',
                 'test@example.com',
@@ -104,7 +83,8 @@ describe('RefreshTokenUseCase', () => {
     describe('failed refresh', () => {
         it('should return error on invalid refresh token', async () => {
             // Arrange
-            mockTokenGenerator.verifyToken.mockReturnValue(null);
+            const error = new Error('Invalid token');
+            mockTokenGenerator.verifyToken.mockReturnValue(R.error(error));
 
             // Act
             const result = await useCase.execute({
@@ -117,14 +97,8 @@ describe('RefreshTokenUseCase', () => {
 
         it('should return error on expired refresh token', async () => {
             // Arrange
-            const payload: TokenPayload = {
-                sub: 'user-123',
-                email: 'test@example.com',
-                iat: Math.floor(Date.now() / 1000) - 604800,
-                exp: Math.floor(Date.now() / 1000) - 1,  // Expirado
-            };
-
-            mockTokenGenerator.verifyToken.mockReturnValue(null);
+            const error = new Error('Token expired');
+            mockTokenGenerator.verifyToken.mockReturnValue(R.error(error));
 
             // Act
             const result = await useCase.execute({
@@ -135,7 +109,7 @@ describe('RefreshTokenUseCase', () => {
             expect(result.isErr()).toBe(true);
         });
 
-        it('should return error if session is revoked in database', async () => {
+        it('should return error if session is invalid', async () => {
             // Arrange
             const payload: TokenPayload = {
                 sub: 'user-123',
@@ -144,18 +118,25 @@ describe('RefreshTokenUseCase', () => {
                 exp: Math.floor(Date.now() / 1000) + 604800,
             };
 
-            mockTokenGenerator.verifyToken.mockReturnValue(payload);
-            mockSessionRepository.isValid.mockResolvedValue(R.ok(false));
+            const user = {
+                id: 'user-123',
+                email: 'test@example.com',
+                toString: () => 'user-123',
+                validateSession: jest.fn().mockReturnValue(false),
+            };
+
+            mockTokenGenerator.verifyToken.mockReturnValue(R.ok(payload));
+            mockUserRepository.findById.mockResolvedValue(R.ok(user));
 
             // Act
             const result = await useCase.execute({
-                refreshToken: 'valid-jwt-but-revoked',
+                refreshToken: 'valid-jwt-but-invalid-session',
             });
 
             // Assert
             expect(result.isErr()).toBe(true);
-            expect(mockSessionRepository.isValid).toHaveBeenCalledWith(
-                'valid-jwt-but-revoked',
+            expect(user.validateSession).toHaveBeenCalledWith(
+                'valid-jwt-but-invalid-session',
             );
         });
 
@@ -168,8 +149,7 @@ describe('RefreshTokenUseCase', () => {
                 exp: Math.floor(Date.now() / 1000) + 604800,
             };
 
-            mockTokenGenerator.verifyToken.mockReturnValue(payload);
-            mockSessionRepository.isValid.mockResolvedValue(R.ok(true));
+            mockTokenGenerator.verifyToken.mockReturnValue(R.ok(payload));
             mockUserRepository.findById.mockResolvedValue(
                 R.error(new Error('User not found')),
             );
