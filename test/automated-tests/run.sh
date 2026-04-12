@@ -40,6 +40,9 @@ MAX_RETRY=30
 while ! curl -s http://localhost:5000/ > /dev/null 2>&1; do
     if [ $RETRY -ge $MAX_RETRY ]; then
         echo -e "${RED}[ERRO] Servidor nao iniciou${NC}"
+        echo "[DEBUG] Últimos 100 linhas do server.log:" >> /tmp/test_debug.log
+        tail -100 /tmp/server.log >> /tmp/test_debug.log
+        echo "" >> /tmp/test_debug.log
         tail -50 /tmp/server.log
         kill $SERVER_PID 2>/dev/null || true
         exit 1
@@ -51,6 +54,7 @@ done
 
 echo -e "${GREEN}[OK] Servidor online!${NC}"
 sleep 2
+echo "[INFO] Servidor iniciado com PID $SERVER_PID" >> /tmp/test_debug.log
 
 echo ""
 echo "================================================================"
@@ -87,14 +91,31 @@ test_case "TESTE 1: GET /" $?
 curl -s -X POST http://localhost:5000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"user@test.com","password":"Pass@123"}' > /tmp/test2.json
-grep -q "data" /tmp/test2.json
-test_case "TESTE 2: POST /auth/register" $?
+if grep -q "data" /tmp/test2.json; then
+    echo -e "${GREEN}[OK]${NC} TESTE 2: POST /auth/register"
+    ((PASS++))
+else
+    echo -e "${RED}[FAIL]${NC} TESTE 2: POST /auth/register"
+    ((FAIL++))
+    echo "[DEBUG TESTE 2] Resposta:" >> /tmp/test_debug.log
+    cat /tmp/test2.json >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
+fi
 
 # Teste 3: Email duplicado
-curl -s -X POST http://localhost:5000/auth/register \
+RESPONSE_TEST3=$(curl -s -X POST http://localhost:5000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@test.com","password":"Pass@123"}' | grep -q "409"
-test_case "TESTE 3: Email duplicado (409)" $?
+  -d '{"email":"user@test.com","password":"Pass@123"}')
+if echo "$RESPONSE_TEST3" | grep -q "409"; then
+    echo -e "${GREEN}[OK]${NC} TESTE 3: Email duplicado (409)"
+    ((PASS++))
+else
+    echo -e "${RED}[FAIL]${NC} TESTE 3: Email duplicado (409)"
+    ((FAIL++))
+    echo "[DEBUG TESTE 3] Resposta (esperado 409):" >> /tmp/test_debug.log
+    echo "$RESPONSE_TEST3" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
+fi
 
 # Teste 4: Email inválido
 curl -s -X POST http://localhost:5000/auth/register \
@@ -119,6 +140,9 @@ if grep -q "accessToken" /tmp/test5_response.json; then
 else
     echo -e "${RED}[FAIL]${NC} TESTE 5: Login"
     ((FAIL++))
+    echo "[DEBUG TESTE 5] Resposta Login (esperado accessToken):" >> /tmp/test_debug.log
+    cat /tmp/test5_response.json >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
     GLOBAL_REFRESH_TOKEN=""
     GLOBAL_ACCESS_TOKEN=""
 fi
@@ -158,22 +182,42 @@ if [ -n "$GLOBAL_REFRESH_TOKEN" ]; then
     curl -s -X POST http://localhost:5000/auth/refresh \
       -H "Content-Type: application/json" \
       -d "{\"refreshToken\":\"$GLOBAL_REFRESH_TOKEN\"}" > /tmp/test10_response.json
-    grep -q "accessToken" /tmp/test10_response.json
-    test_case "TESTE 10: Refresh token válido" $?
+    if grep -q "accessToken" /tmp/test10_response.json; then
+        echo -e "${GREEN}[OK]${NC} TESTE 10: Refresh token válido"
+        ((PASS++))
+    else
+        echo -e "${RED}[FAIL]${NC} TESTE 10: Refresh token válido"
+        ((FAIL++))
+        echo "[DEBUG TESTE 10] Resposta Refresh (token: $GLOBAL_REFRESH_TOKEN):" >> /tmp/test_debug.log
+        cat /tmp/test10_response.json >> /tmp/test_debug.log
+        echo "" >> /tmp/test_debug.log
+    fi
 else
     echo -e "${RED}[FAIL]${NC} TESTE 10: Refresh token válido (token não disponível)"
     ((FAIL++))
+    echo "[DEBUG TESTE 10] Refresh token indisponível (TESTE 5 falhou)" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
 fi
 
 # Teste 11: Logout com token válido
 if [ -n "$GLOBAL_ACCESS_TOKEN" ]; then
     curl -s -X POST http://localhost:5000/auth/logout \
       -H "Authorization: Bearer $GLOBAL_ACCESS_TOKEN" > /tmp/test11_response.json
-    grep -q "data" /tmp/test11_response.json
-    test_case "TESTE 11: POST /auth/logout" $?
+    if grep -q "data" /tmp/test11_response.json; then
+        echo -e "${GREEN}[OK]${NC} TESTE 11: POST /auth/logout"
+        ((PASS++))
+    else
+        echo -e "${RED}[FAIL]${NC} TESTE 11: POST /auth/logout"
+        ((FAIL++))
+        echo "[DEBUG TESTE 11] Resposta Logout (token: $GLOBAL_ACCESS_TOKEN):" >> /tmp/test_debug.log
+        cat /tmp/test11_response.json >> /tmp/test_debug.log
+        echo "" >> /tmp/test_debug.log
+    fi
 else
     echo -e "${RED}[FAIL]${NC} TESTE 11: POST /auth/logout (token não disponível)"
     ((FAIL++))
+    echo "[DEBUG TESTE 11] Access token indisponível (TESTE 5 falhou)" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
 fi
 
 # Teste 12: Google auth redirect
@@ -239,10 +283,19 @@ test_case "TESTE 19: Password faltando retorna 400" $?
 
 # Teste 20: Email muito longo
 LONG_EMAIL="$(printf 'a%.0s' {1..250})@test.com"
-curl -s -X POST http://localhost:5000/auth/register \
+RESPONSE_TEST20=$(curl -s -X POST http://localhost:5000/auth/register \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"$LONG_EMAIL\",\"password\":\"Pass@123\"}" | grep -q "400"
-test_case "TESTE 20: Email muito longo retorna 400" $?
+  -d "{\"email\":\"$LONG_EMAIL\",\"password\":\"Pass@123\"}")
+if echo "$RESPONSE_TEST20" | grep -q "400"; then
+    echo -e "${GREEN}[OK]${NC} TESTE 20: Email muito longo retorna 400"
+    ((PASS++))
+else
+    echo -e "${RED}[FAIL]${NC} TESTE 20: Email muito longo retorna 400"
+    ((FAIL++))
+    echo "[DEBUG TESTE 20] Resposta Email longo (esperado 400):" >> /tmp/test_debug.log
+    echo "$RESPONSE_TEST20" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
+fi
 
 # ============ TESTES DE RATE LIMITING ============
 echo ""
@@ -272,13 +325,30 @@ UNIQUE_EMAIL="success_$(date +%s)@test.com"
 SUCCESS_RESPONSE=$(curl -s -X POST http://localhost:5000/auth/register \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"$UNIQUE_EMAIL\",\"password\":\"Pass@123\"}")
-echo "$SUCCESS_RESPONSE" | grep -q "data"
-test_case "TESTE 23: Sucesso retorna data" $?
+if echo "$SUCCESS_RESPONSE" | grep -q "data"; then
+    echo -e "${GREEN}[OK]${NC} TESTE 23: Sucesso retorna data"
+    ((PASS++))
+else
+    echo -e "${RED}[FAIL]${NC} TESTE 23: Sucesso retorna data"
+    ((FAIL++))
+    echo "[DEBUG TESTE 23] Resposta Sucesso (email: $UNIQUE_EMAIL, esperado 'data'):" >> /tmp/test_debug.log
+    echo "$SUCCESS_RESPONSE" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
+fi
 
 # Teste 24: Token tem formato JWT
 TOKEN_FORMAT=$(echo "$GLOBAL_ACCESS_TOKEN" | grep -E "^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$" | wc -l)
-[ $TOKEN_FORMAT -eq 1 ]
-test_case "TESTE 24: Token tem formato JWT válido" $?
+if [ $TOKEN_FORMAT -eq 1 ]; then
+    echo -e "${GREEN}[OK]${NC} TESTE 24: Token tem formato JWT válido"
+    ((PASS++))
+else
+    echo -e "${RED}[FAIL]${NC} TESTE 24: Token tem formato JWT válido"
+    ((FAIL++))
+    echo "[DEBUG TESTE 24] Token recebido (esperado formato JWT: xxx.xxx.xxx):" >> /tmp/test_debug.log
+    echo "Token: $GLOBAL_ACCESS_TOKEN" >> /tmp/test_debug.log
+    echo "Length: ${#GLOBAL_ACCESS_TOKEN}" >> /tmp/test_debug.log
+    echo "" >> /tmp/test_debug.log
+fi
 
 # ============ RESUMO ============
 echo ""
@@ -296,8 +366,17 @@ if [ -n "$SERVER_PID" ]; then
 fi
 pkill -f "node.*start:prod" 2>/dev/null || true
 
+# Exibir logs de debug se houver falhas
+if [ $FAIL -gt 0 ] && [ -f /tmp/test_debug.log ]; then
+    echo ""
+    echo "================================================================"
+    echo "LOGS DE DEBUG"
+    echo "================================================================"
+    cat /tmp/test_debug.log
+fi
+
 # Limpar arquivos temporários
-rm -f /tmp/test*.json /tmp/server.log
+rm -f /tmp/test*.json /tmp/test_debug.log /tmp/server.log
 
 if [ $FAIL -eq 0 ]; then
     echo ""
