@@ -36,6 +36,11 @@ export class User extends AggregateRoot<UserProps> {
         const instance = new User();
 
         const setEmail = instance.setEmail(props.email);
+        if (!props.googleId && !props.password) {
+            return R.error(
+                new UserException('Usuário deve ter senha ou googleId'),
+            );
+        }
 
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
@@ -56,21 +61,18 @@ export class User extends AggregateRoot<UserProps> {
     static build(props: UserProps, id: string): Result<UserException, User> {
         const instance = new User(id);
 
-        if (!props.googleId && !props.password) {
-            return R.error(
-                new UserException('Usuário deve ter senha ou googleId'),
-            );
-        }
-
         const setEmailResult = instance.setEmail(props.email);
+        const setUserRoles = instance.setUserRoles(props.userRoles);
+
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider);
         instance.setAvatarUrl(props.avatarUrl);
+        instance.setSessions(props.sessions);
         instance.props.createdAt = props.createdAt;
         instance.props.updatedAt = props.updatedAt;
 
-        return R.getResult([setEmailResult], instance);
+        return R.getResult([setEmailResult, setUserRoles], instance);
     }
 
     addGoogleInfo(googleId: string, avatarUrl?: string): void {
@@ -250,5 +252,9 @@ export class User extends AggregateRoot<UserProps> {
         this.props.sessions ??= [];
         this.props.sessions.push(session);
         return R.ok();
+    }
+
+    private setSessions(sessions?: Session[]): void {
+        this.props.sessions = sessions;
     }
 }

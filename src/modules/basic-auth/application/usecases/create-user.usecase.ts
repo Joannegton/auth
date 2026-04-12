@@ -14,13 +14,14 @@ import type { RoleRepository } from '../../domain/repositories/role.repository';
 import type { IPasswordEncryptionService } from '../../domain/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from '../../domain/services/password-encryption.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
+import { ROLES } from '../../domain/role';
 
-export type CriarUsuarioUseCaseExceptions =
+export type CreateUserUseCaseExceptions =
     | InvalidPropsException
     | InvalidPasswordException
     | RepositoryNoDataFoundException;
 
-export class CriarUsuarioUseCase {
+export class CreateUserUseCase {
     constructor(
         @Inject('UserRepository')
         private readonly userRepository: UserRepository,
@@ -34,11 +35,13 @@ export class CriarUsuarioUseCase {
 
     async execute(
         props: CreateUserDto,
-    ): ResultAsync<CriarUsuarioUseCaseExceptions, void> {
+    ): ResultAsync<CreateUserUseCaseExceptions, void> {
         const existingUserPromise = this.userRepository.findByEmail(
             props.email.trim().toLowerCase(),
         );
-        const rolePromise = this.roleRepository.find(props.roleIdNum);
+        const rolePromise = this.roleRepository.find(
+            props.roleIdNum || ROLES.USER,
+        );
         const creatorPromise = props.creatorUserId
             ? this.userRepository.findById(props.creatorUserId)
             : Promise.resolve(null);
@@ -50,7 +53,13 @@ export class CriarUsuarioUseCase {
         ]);
 
         if (existingUser.isOk())
-            return R.error(new BusinessException('Email já está em uso'));
+            return R.error(
+                new BusinessException(
+                    'Email já está em uso',
+                    'EMAIL_ALREADY_EXISTS',
+                    409,
+                ),
+            );
 
         if (
             existingUser.isErr() &&

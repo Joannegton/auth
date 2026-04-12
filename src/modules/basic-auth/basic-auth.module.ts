@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { SharedModule } from '../../shared/shared.module';
-import { CriarUsuarioUseCase } from './application/usecases/criar-usuario.usecase';
+import { CreateUserUseCase } from './application/usecases/create-user.usecase';
 import { LoginUseCase } from './application/usecases/login.usecase';
 import { RefreshTokenUseCase } from './application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from './application/usecases/logout.usecase';
@@ -34,7 +34,7 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
     ],
     controllers: [AuthController, GoogleAuthController],
     providers: [
-        CriarUsuarioUseCase,
+        CreateUserUseCase,
         LoginUseCase,
         RefreshTokenUseCase,
         LogoutUseCase,
@@ -66,10 +66,6 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
         ...Repositories,
         ...Mappers,
     ],
-    exports: [
-        'UserRepository',
-        'RoleRepository',
-        TokenGeneratorServiceImpl,
-    ],
+    exports: ['UserRepository', 'RoleRepository', TokenGeneratorServiceImpl],
 })
 export class BasicAuthModule {}

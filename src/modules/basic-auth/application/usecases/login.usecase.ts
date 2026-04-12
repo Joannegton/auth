@@ -41,7 +41,7 @@ export class LoginUseCase {
     ): ResultAsync<LoginUseCaseExceptions, AuthTokens> {
         const { ipAddress, userAgent } = requestInfo;
 
-        const user = await this.userRepository.findByEmail(
+        const user = await this.userRepository.findForLogin(
             props.email.toLowerCase().trim(),
         );
 
@@ -98,6 +98,9 @@ export class LoginUseCase {
         });
 
         if (addSession.isErr()) return R.error(addSession.error);
+
+        const saveResult = await this.userRepository.save(user.value);
+        if (saveResult.isErr()) return R.error(saveResult.error);
 
         await this.auditLog.logLoginSuccess(
             user.value.id.toString(),

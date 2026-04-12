@@ -4,6 +4,7 @@ import {
     ArgumentsHost,
     HttpStatus,
     Logger,
+    HttpException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -27,7 +28,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         let code: string | undefined;
 
         if (exception instanceof BusinessException) {
-            statusCode = HttpStatus.BAD_REQUEST;
+            statusCode = exception.statusCode || HttpStatus.BAD_REQUEST;
             message = exception.message;
             code = exception.code;
             this.logger.warn(`Business exception: ${message}`);
@@ -45,6 +46,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                 `Service exception: ${message}`,
                 exception.originalError,
             );
+        } else if (exception instanceof HttpException) {
+            statusCode = exception.getStatus();
+            const exceptionResponse = exception.getResponse();
+            if (
+                typeof exceptionResponse === 'object' &&
+                exceptionResponse !== null
+            ) {
+                const response = exceptionResponse as any;
+                message = response.message || exception.message;
+                if (Array.isArray(message)) {
+                    message = message.join(', ');
+                }
+            } else {
+                message = exception.message;
+            }
+            this.logger.warn(`HTTP exception: ${message}`);
         } else if (exception instanceof Exception) {
             statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
             message = exception.message;

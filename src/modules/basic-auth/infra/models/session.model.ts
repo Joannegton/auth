@@ -13,7 +13,6 @@ import { Model } from '../../../../shared/domain/model';
 export interface SessionProps {
     id: string;
     refreshToken: string;
-    userId: string;
     expiresAt: Date;
     isRevoked: boolean;
     userAgent?: string;
@@ -28,7 +27,12 @@ export class SessionModel extends Model<SessionProps> implements SessionProps {
     @PrimaryColumn('uuid')
     id: string;
 
-    @Column({ name: 'refresh_token', type: 'varchar', length: 2048, unique: true })
+    @Column({
+        name: 'refresh_token',
+        type: 'varchar',
+        length: 2048,
+        unique: true,
+    })
     refreshToken: string;
 
     @Column({ name: 'user_id', type: 'uuid' })
@@ -48,7 +52,12 @@ export class SessionModel extends Model<SessionProps> implements SessionProps {
     @Column({ name: 'revoked', type: 'boolean', default: false })
     isRevoked: boolean;
 
-    @Column({ name: 'user_agent', type: 'varchar', length: 500, nullable: true })
+    @Column({
+        name: 'user_agent',
+        type: 'varchar',
+        length: 500,
+        nullable: true,
+    })
     userAgent: string;
 
     @Column({ name: 'infinity', type: 'boolean', default: false })

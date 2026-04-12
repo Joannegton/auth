@@ -56,7 +56,8 @@ export class UserRoleMapper {
         return R.ok(userRoles);
     }
 
-    toModelList(domains: UserRole[]): UserRoleModel[] {
+    toModelList(domains: UserRole[] | undefined): UserRoleModel[] {
+        if (!domains) return [];
         return domains.map((domain) => this.toModel(domain));
     }
 }

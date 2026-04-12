@@ -20,6 +20,7 @@ export class BusinessException extends Exception {
     constructor(
         message: string,
         public readonly code?: string,
+        public readonly statusCode: number = 400,
     ) {
         super(message);
         Object.setPrototypeOf(this, BusinessException.prototype);

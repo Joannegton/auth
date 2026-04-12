@@ -13,9 +13,10 @@ export class CreateUserDto {
     })
     password: string;
 
+    @IsOptional()
     @IsNumber({}, { message: 'Role ID deve ser um número' })
     @IsPositive({ message: 'Role ID deve ser um número positivo' })
-    roleIdNum: number;
+    roleIdNum?: number;
 
     @IsOptional()
     creatorUserId?: string;

@@ -22,14 +22,13 @@ export class SessionMapper {
         return R.ok(domain.value);
     }
 
-    toModel(session: Session, userId?: string): SessionModel {
+    toModel(session: Session): SessionModel {
         const sessionModel = SessionModel.build({
             id: session.id.toString(),
             refreshToken: session.refreshToken,
             expiresAt: session.expiresAt,
             isRevoked: session.isRevoked,
             userAgent: session.userAgent,
-            userId: userId || '',
         });
         return sessionModel;
     }
