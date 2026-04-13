@@ -1,126 +1,70 @@
-## ⚙️ Setup e Configuração
+# Setup - Auth Service com Docker
 
-### 1. Gerar Chaves RSA
-
-```bash
-openssl genrsa -out .secrets/private.pem 2048
-openssl rsa -in .secrets/private.pem -pubout -out .secrets/public.pem
-```
-
-### 2. Variáveis de Ambiente
+### 1️⃣ Copiar arquivo de configuração
 
 ```bash
 cp .env.example .env
-# Editar:
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
-DB_NAME=auth_db
-
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
-
-JWT_ACCESS_TOKEN_MINS_EXPIRES_IN=15m
-JWT_REFRESH_TOKEN_DAYS_EXPIRES_IN=7d
-KEYS_DIR=.secrets
 ```
 
-### 3. Executar Aplicação
+### 2️⃣ Gerar chaves JWT
+
+**Opção A - Automático (Linux/Mac/WSL):**
 
 ```bash
-npm install
-npm run migration:run
-npm run start:dev
+# Gerar chave privada
+openssl genrsa -out private_key.pem 2048
+
+# Gerar chave pública
+openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
----
-
-## 🐳 Kubernetes Deployment
-
-### Exemplo Deployment Manifest
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-    name: auth-rsa-keys
-type: Opaque
-data:
-    private-pem: <base64 encoded private.pem>
-    public-pem: <base64 encoded public.pem>
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-    name: auth-service
-spec:
-    replicas: 2
-    selector:
-        matchLabels:
-            app: auth
-    template:
-        metadata:
-            labels:
-                app: auth
-        spec:
-            containers:
-                - name: auth
-                  image: auth:latest
-                  ports:
-                      - containerPort: 3000
-                  env:
-                      - name: DB_HOST
-                        valueFrom:
-                            configMapKeyRef:
-                                name: auth-config
-                                key: db-host
-                      - name: GOOGLE_CLIENT_ID
-                        valueFrom:
-                            secretKeyRef:
-                                name: auth-credentials
-                                key: google-client-id
-                  volumeMounts:
-                      - name: rsa-keys
-                        mountPath: /app/.secrets
-                        readOnly: true
-            volumes:
-                - name: rsa-keys
-                  secret:
-                      secretName: auth-rsa-keys
-                      items:
-                          - key: private-pem
-                            path: private.pem
-                          - key: public-pem
-                            path: public.pem
-```
-
-## 📊 Variáveis de Ambiente
+Copie o conteúdo das chaves geradas para o `.env`:
 
 ```env
-# Core
-NODE_ENV=development
-PORT=3000
+JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+...copie o conteúdo de private_key.pem aqui...
+-----END PRIVATE KEY-----"
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+...copie o conteúdo de public_key.pem aqui...
+-----END PUBLIC KEY-----"
+```
+
+**Opção B - Online (Windows):**
+
+- Acesse: https://travistidwell.com/jsencrypt/demo/
+- Clique em "Generate New Key Pair"
+- Copie as chaves para o `.env`
+
+### 3️⃣ Configurar banco de dados
+
+Edite o arquivo `.env` e preencha com seus dados:
+
+```env
+# Database - Apontar para seu servidor PostgreSQL
+DB_HOST=seu-postgres-host.com    # ou localhost se local
+DB_PORT=5432                      # porta padrão
+DB_USER=seu-usuario
+DB_PASSWORD=sua-senha-super-secreta
 DB_NAME=auth_db
 
-# JWT
-KEYS_DIR=.secrets
-JWT_ACCESS_TOKEN_MINS_EXPIRES_IN=15m
-JWT_REFRESH_TOKEN_DAYS_EXPIRES_IN=7d
+# Mantém as chaves JWT que você gerou acima
+JWT_PRIVATE_KEY="..."
+JWT_PUBLIC_KEY="..."
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
-
-# Flutter/Client
-CLIENT_REDIRECT_URL=http://localhost:3000/auth/success
+# Opcionais - Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=https://seu-dominio/auth/google/callback
+CLIENT_REDIRECT_URL=https://seu-dominio/
 ```
+
+### 4️⃣ Subir o Docker
+
+```bash
+docker-compose up -d
+```
+
+**Aguarde alguns segundos** e acesse: `http://localhost:3000`
+
+---

@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+.env
+.env.example
+.env*.local
+.env*.production
+README.md
+*.md
+.claude
+.secrets
+coverage
+.git
+.github
