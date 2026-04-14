@@ -32,8 +32,13 @@ RUN npm ci --only=production
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
+# Copy entrypoint script and migrations
+COPY entrypoint.sh ./
+COPY src/shared/infra/migrations ./dist/src/shared/infra/migrations
+
+# Make entrypoint executable and create non-root user
+RUN chmod +x entrypoint.sh && \
+    addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 USER nodejs
@@ -43,4 +48,4 @@ EXPOSE 3000
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "entrypoint.sh"]
