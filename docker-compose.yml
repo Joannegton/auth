@@ -24,4 +24,10 @@ services:
       CLIENT_REDIRECT_URL: ${CLIENT_REDIRECT_URL}
     ports:
       - "${PORT:-3000}:3000"
+    networks:
+      - backend
     restart: unless-stopped
+
+networks:
+  backend:
+    external: true
