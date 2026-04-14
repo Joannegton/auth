@@ -36,6 +36,9 @@ COPY --from=builder /app/dist ./dist
 COPY entrypoint.sh ./
 COPY src/shared/infra/migrations ./dist/src/shared/infra/migrations
 
+# Copy data-source compiled file to root for migrations to find it
+COPY --from=builder /app/dist/src/data-source.js ./data-source.js
+
 # Make entrypoint executable and create non-root user
 RUN chmod +x entrypoint.sh && \
     addgroup -g 1001 -S nodejs && \
