@@ -6,11 +6,13 @@ import { Role } from './role';
 export type CreateUserRoleProps = {
     userId?: string;
     role: Role;
+    serviceId?: string;
 };
 
 export type UserRoleProps = {
     userId: string;
     role: Role;
+    serviceId: string;
     assignedAt: Date;
 };
 
@@ -26,6 +28,7 @@ export class UserRole extends Entity<UserRoleProps> {
 
         const setUserIdResult = instance.setUserId(props.userId || 'temp');
         const setRoleResult = instance.setRole(props.role);
+        instance.setServiceId(props.serviceId || 'temp');
 
         return R.getResult([setUserIdResult, setRoleResult], instance);
     }
@@ -38,6 +41,7 @@ export class UserRole extends Entity<UserRoleProps> {
 
         const setUserIdResult = instance.setUserId(props.userId);
         const setRoleIdResult = instance.setRole(props.role);
+        instance.setServiceId(props.serviceId);
         instance.props.assignedAt = props.assignedAt;
 
         return R.getResult([setUserIdResult, setRoleIdResult], instance);
@@ -45,6 +49,10 @@ export class UserRole extends Entity<UserRoleProps> {
 
     get userId(): string {
         return this.props.userId;
+    }
+
+    get serviceId(): string {
+        return this.props.serviceId;
     }
 
     get assignedAt(): Date {
@@ -69,5 +77,9 @@ export class UserRole extends Entity<UserRoleProps> {
         }
         this.props.role = role;
         return R.ok();
+    }
+
+    private setServiceId(serviceId: string): void {
+        this.props.serviceId = serviceId;
     }
 }

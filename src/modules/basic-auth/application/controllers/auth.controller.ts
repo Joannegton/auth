@@ -12,8 +12,10 @@ import { CreateUserUseCase } from '../usecases/create-user.usecase';
 import { LoginUseCase } from '../../application/usecases/login.usecase';
 import { RefreshTokenUseCase } from '../../application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from '../../application/usecases/logout.usecase';
+import { CreateWorkerUseCase } from '../usecases/create-worker.usecase';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { LoginDto, RefreshTokenDto } from '../dtos/login.dto';
+import { CreateWorkerDto } from '../dtos/create-worker.dto';
 import { ExtractUserId } from '../../domain/decorators/extract-user-id.decorator';
 import {
     ExtractRequestInfo,
@@ -30,6 +32,7 @@ export class AuthController extends Controller {
         private readonly loginUseCase: LoginUseCase,
         private readonly refreshTokenUseCase: RefreshTokenUseCase,
         private readonly logoutUseCase: LogoutUseCase,
+        private readonly createWorkerUseCase: CreateWorkerUseCase,
         private readonly tokenGenerator: TokenGeneratorServiceImpl,
     ) {
         super();
@@ -47,6 +50,7 @@ export class AuthController extends Controller {
             password: createUserDto.password,
             roleIdNum: createUserDto.roleIdNum,
             creatorUserId: creatorUserId,
+            serviceId: 'auth-service',
         });
 
         return this.buildResponse(result);
@@ -63,6 +67,7 @@ export class AuthController extends Controller {
             {
                 email: loginDto.email,
                 password: loginDto.password,
+                serviceId: loginDto.serviceId,
             },
             requestInfo,
         );
@@ -88,6 +93,24 @@ export class AuthController extends Controller {
         @ExtractRequestInfo() requestInfo: RequestInfo,
     ) {
         const result = await this.logoutUseCase.execute(userId, requestInfo);
+
+        return this.buildResponse(result);
+    }
+
+    @Post('workers')
+    @HttpCode(HttpStatus.CREATED)
+    @UseGuards(JwtAuthGuard)
+    async createWorker(
+        @Body() createWorkerDto: CreateWorkerDto,
+        @ExtractUserId() userId: string,
+    ) {
+        const result = await this.createWorkerUseCase.execute({
+            email: createWorkerDto.email,
+            password: createWorkerDto.password,
+            roleIdNum: createWorkerDto.roleIdNum,
+            serviceId: createWorkerDto.serviceId,
+            creatorUserId: userId,
+        });
 
         return this.buildResponse(result);
     }

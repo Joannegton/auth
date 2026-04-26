@@ -40,9 +40,16 @@ export class RefreshTokenUseCase {
             return R.error(new SessionInvalidException('Sessao invalida'));
         }
 
+        const idsNumUserRoles = user.value.getIdsNumUserRolesService(
+            payload.value.serviceId,
+        );
+        if (idsNumUserRoles.isErr()) return R.error(idsNumUserRoles.error);
+
         const tokens = this.tokenGenerator.generateTokens(
             user.value.id.toString(),
             user.value.email,
+            user.value.serviceId,
+            idsNumUserRoles.value,
         );
 
         await this.auditLog.logTokenRefresh(

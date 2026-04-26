@@ -6,11 +6,13 @@ import { CreateUserUseCase } from './application/usecases/create-user.usecase';
 import { LoginUseCase } from './application/usecases/login.usecase';
 import { RefreshTokenUseCase } from './application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from './application/usecases/logout.usecase';
+import { CreateWorkerUseCase } from './application/usecases/create-worker.usecase';
 import { GoogleLoginUseCase } from './application/usecases/google-login.usecase';
 import { UserModel } from './infra/models/user.model';
 import { SessionModel } from './infra/models/session.model';
 import { UserRoleModel } from './infra/models/user-roles.model';
 import { RoleModel } from './infra/models/role.model';
+import { ServiceModel } from './infra/models/service.model';
 import { AuthController } from './application/controllers/auth.controller';
 import { GoogleAuthController } from './application/controllers/google-auth.controller';
 import { Policies } from './domain/policies';
@@ -20,6 +22,7 @@ import { TokenGeneratorServiceImpl } from './infra/services/token-generator.serv
 import { BcryptPasswordEncryptionService } from './infra/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from './domain/services/password-encryption.service';
 import { GoogleStrategy } from './infra/strategies/google.strategy';
+import { CreateServiceUseCase } from './application/usecases/create-service.usecase';
 
 @Module({
     imports: [
@@ -28,6 +31,7 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
             SessionModel,
             UserRoleModel,
             RoleModel,
+            ServiceModel,
         ]),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         SharedModule,
@@ -38,6 +42,8 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
         LoginUseCase,
         RefreshTokenUseCase,
         LogoutUseCase,
+        CreateWorkerUseCase,
+        CreateServiceUseCase,
         GoogleLoginUseCase,
         TokenGeneratorServiceImpl,
         {
@@ -66,6 +72,6 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
         ...Repositories,
         ...Mappers,
     ],
-    exports: ['UserRepository', 'RoleRepository', TokenGeneratorServiceImpl],
+    exports: ['UserRepository', 'RoleRepository', 'ServiceRepository', TokenGeneratorServiceImpl],
 })
 export class BasicAuthModule {}

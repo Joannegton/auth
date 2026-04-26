@@ -20,6 +20,7 @@ export class UserRoleMapper {
                 userId: model.userId,
                 role: role.value,
                 assignedAt: model.assignedAt,
+                serviceId: model.serviceId,
             },
             model.id,
         );
@@ -38,6 +39,7 @@ export class UserRoleMapper {
             roleId: roleId.ids.id,
             roleIdNum: roleId.ids.idNum,
             assignedAt: domain.assignedAt,
+            serviceId: domain.serviceId,
         });
         return model;
     }

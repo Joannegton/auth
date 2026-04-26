@@ -12,9 +12,16 @@ export type UserRepositoryExceptions =
 export interface UserRepository {
     save(user: User): ResultAsync<UserRepositoryExceptions, void>;
     findByEmail(email: string): ResultAsync<UserRepositoryExceptions, User>;
+    findByEmailAndService(
+        email: string,
+        serviceId: string,
+    ): ResultAsync<UserRepositoryExceptions, User>;
     findById(id: string): ResultAsync<UserRepositoryExceptions, User>;
     findByGoogleId(
         googleId: string,
     ): ResultAsync<UserRepositoryExceptions, User>;
-    findForLogin(email: string): ResultAsync<UserRepositoryExceptions, User>;
+    findForLogin(
+        email: string,
+        serviceId: string,
+    ): ResultAsync<UserRepositoryExceptions, User>;
 }

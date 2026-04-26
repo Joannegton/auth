@@ -7,6 +7,8 @@ import { R, Result } from 'src/shared/domain/result';
 export interface TokenPayload {
     sub: string;
     email: string;
+    serviceId: string;
+    roles: number[];
     iat: number;
     exp: number;
 }
@@ -57,10 +59,17 @@ export class TokenGeneratorServiceImpl implements TokenGeneratorService {
         }
     }
 
-    generateTokens(userId: string, email: string): AuthTokens {
+    generateTokens(
+        userId: string,
+        email: string,
+        serviceId: string,
+        idNumRoles: number[], // mudar para ids string, verificar
+    ): AuthTokens {
         const payload = {
             sub: userId,
             email,
+            serviceId,
+            roles: idNumRoles,
         };
 
         const accessToken = jwt.sign(payload, this.privateKey, {

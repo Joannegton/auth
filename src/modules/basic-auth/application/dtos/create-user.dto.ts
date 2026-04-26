@@ -1,4 +1,10 @@
-import { IsEmail, IsNumber, IsPositive, IsOptional } from 'class-validator';
+import {
+    IsEmail,
+    IsNumber,
+    IsPositive,
+    IsOptional,
+    IsUUID,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { IsStrongPassword } from '../../domain/decorators/password-strength.decorator';
 
@@ -20,4 +26,7 @@ export class CreateUserDto {
 
     @IsOptional()
     creatorUserId?: string;
+
+    @IsUUID()
+    serviceId: string;
 }

@@ -21,6 +21,7 @@ export type UserProps = {
     googleId?: string;
     provider: string;
     avatarUrl?: string;
+    serviceId: string;
     createdAt: Date;
     updatedAt?: Date;
     userRoles: UserRole[];
@@ -42,6 +43,8 @@ export class User extends AggregateRoot<UserProps> {
             );
         }
 
+        const setServiceId = instance.setServiceId(props.serviceId);
+
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider ?? 'local');
@@ -55,7 +58,7 @@ export class User extends AggregateRoot<UserProps> {
 
         const setRolesResult = instance.setUserRoles([userRole.value]);
 
-        return R.getResult([setEmail, setRolesResult], instance);
+        return R.getResult([setEmail, setRolesResult, setServiceId], instance);
     }
 
     static build(props: UserProps, id: string): Result<UserException, User> {
@@ -63,6 +66,7 @@ export class User extends AggregateRoot<UserProps> {
 
         const setEmailResult = instance.setEmail(props.email);
         const setUserRoles = instance.setUserRoles(props.userRoles);
+        const setServiceId = instance.setServiceId(props.serviceId);
 
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
@@ -72,7 +76,10 @@ export class User extends AggregateRoot<UserProps> {
         instance.props.createdAt = props.createdAt;
         instance.props.updatedAt = props.updatedAt;
 
-        return R.getResult([setEmailResult, setUserRoles], instance);
+        return R.getResult(
+            [setEmailResult, setUserRoles, setServiceId],
+            instance,
+        );
     }
 
     addGoogleInfo(googleId: string, avatarUrl?: string): void {
@@ -153,6 +160,22 @@ export class User extends AggregateRoot<UserProps> {
         );
     }
 
+    getIdsNumUserRolesService(
+        serviceId: string,
+    ): Result<UserException, number[]> {
+        const roleIds = this.props.userRoles
+            .filter((ur) => ur.serviceId === serviceId)
+            .map((ur) => ur.role.id as CompositeId<RolePk>);
+
+        if (roleIds.length === 0) {
+            return R.error(new UserException('Usuário não tem papéis'));
+        }
+
+        const roleIdsNum = roleIds.map((id) => id.ids.idNum);
+
+        return R.ok(roleIdsNum);
+    }
+
     get email(): string {
         return this.props.email;
     }
@@ -171,6 +194,10 @@ export class User extends AggregateRoot<UserProps> {
 
     get avatarUrl(): string | undefined {
         return this.props.avatarUrl;
+    }
+
+    get serviceId(): string {
+        return this.props.serviceId;
     }
 
     get createdAt(): Date {
@@ -233,6 +260,14 @@ export class User extends AggregateRoot<UserProps> {
 
     private setAvatarUrl(avatarUrl?: string): void {
         this.props.avatarUrl = avatarUrl;
+    }
+
+    private setServiceId(serviceId: string): Result<UserException, void> {
+        if (!serviceId)
+            return R.error(new UserException('Usuario deve ter serviço'));
+
+        this.props.serviceId = serviceId;
+        return R.ok();
     }
 
     private setUserRoles(userRoles: UserRole[]): Result<UserException, void> {

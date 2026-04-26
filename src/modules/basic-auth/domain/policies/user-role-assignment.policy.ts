@@ -9,17 +9,20 @@ import { CompositeId } from 'src/shared/domain/value-objects/composite-id.vo';
 import { RolePk } from '../role-pk.vo';
 
 /**
- * Regras de autorização:
- * - ADMIN: pode criar qualquer role
- * - MODERATOR: só pode criar USER, GUEST, BANNED (roles com idNum > 2)
- * - USER, GUEST, BANNED: não podem criar nada
- * - Sem autenticação: pode criar apenas USER (role padrão)
+ * Regras de autorização (scoped a serviceId):
+ * - OWNER: pode criar qualquer role menor (ADMIN, MODERATOR, WORKER, GUEST, BANNED, CLIENT)
+ * - ADMIN: pode criar MODERATOR, WORKER, GUEST, BANNED, CLIENT
+ * - MODERATOR: pode criar WORKER, GUEST, BANNED, CLIENT
+ * - WORKER, GUEST, BANNED: não podem criar nada
+ * - Sem autenticação: pode criar apenas CLIENT (role padrão)
+ * - Nenhum usuário pode criar OWNER
  */
 @Injectable()
 export class UserRoleAssignmentPolicy {
     assignRoleToNewUser(
         roleToAssign: Role,
         creator?: User,
+        serviceId?: string,
     ): Result<UserWithoutPermissionException | UserRoleException, UserRole> {
         if (!roleToAssign) {
             return R.error(
@@ -30,6 +33,7 @@ export class UserRoleAssignmentPolicy {
         const authResult = this.validateCreatorPermission(
             roleToAssign,
             creator,
+            serviceId,
         );
         if (authResult.isErr()) {
             return R.error(authResult.error);
@@ -49,18 +53,40 @@ export class UserRoleAssignmentPolicy {
     private validateCreatorPermission(
         roleToCreate: Role,
         creator?: User,
+        serviceId?: string,
     ): Result<UserWithoutPermissionException, void> {
         const roleToCreateId = roleToCreate.id as CompositeId<RolePk>;
+
+        // Ninguém pode criar OWNER
+        if (roleToCreateId.ids.idNum === ROLES.OWNER) {
+            return R.error(
+                new UserWithoutPermissionException(
+                    'Não é possível criar usuários com role OWNER',
+                ),
+            );
+        }
+
         if (!creator) {
-            if (
-                roleToCreateId.ids.idNum === ROLES.USER ||
-                roleToCreateId.ids.idNum === ROLES.GUEST
-            ) {
+            // Sem autenticação, pode criar apenas CLIENT
+            if (roleToCreateId.ids.idNum === ROLES.CLIENT) {
                 return R.ok();
             }
             return R.error(
                 new UserWithoutPermissionException(
-                    'Sem autenticação, só é possível criar usuários com role USER ou GUEST',
+                    'Sem autenticação, só é possível criar usuários com role CLIENT',
+                ),
+            );
+        }
+
+        // Validar que creator tem pelo menos uma role no serviceId
+        const creatorRoleInService = creator.userRoleList.filter(
+            (ur) => !serviceId || ur.serviceId === serviceId,
+        );
+
+        if (creatorRoleInService.length === 0) {
+            return R.error(
+                new UserWithoutPermissionException(
+                    `Creator não tem role no serviço ${serviceId}`,
                 ),
             );
         }
@@ -77,17 +103,38 @@ export class UserRoleAssignmentPolicy {
         const creatorRoleId = creatorHighestRole.value
             .id as CompositeId<RolePk>;
 
-        if (creatorRoleId.ids.idNum === ROLES.ADMIN) {
-            return R.ok();
+        // OWNER pode criar qualquer role menor
+        if (creatorRoleId.ids.idNum === ROLES.OWNER) {
+            if (roleToCreateId.ids.idNum > ROLES.OWNER) {
+                return R.ok();
+            }
+            return R.error(
+                new UserWithoutPermissionException(
+                    'OWNER não pode criar outra role OWNER',
+                ),
+            );
         }
 
+        // ADMIN pode criar roles menores
+        if (creatorRoleId.ids.idNum === ROLES.ADMIN) {
+            if (roleToCreateId.ids.idNum > ROLES.ADMIN) {
+                return R.ok();
+            }
+            return R.error(
+                new UserWithoutPermissionException(
+                    'ADMIN só pode criar roles menores que ADMIN',
+                ),
+            );
+        }
+
+        // MODERATOR pode criar WORKER, GUEST, BANNED
         if (creatorRoleId.ids.idNum === ROLES.MODERATOR) {
             if (roleToCreateId.ids.idNum > ROLES.MODERATOR) {
                 return R.ok();
             }
             return R.error(
                 new UserWithoutPermissionException(
-                    'MODERATOR só pode criar usuários com roles USER, GUEST ou BANNED',
+                    'MODERATOR só pode criar roles WORKER, GUEST ou BANNED',
                 ),
             );
         }

@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
     BusinessException,
     InvalidPropsException,
@@ -6,46 +6,54 @@ import {
 } from 'src/shared/domain/exceptions';
 import { R, ResultAsync } from 'src/shared/domain/result';
 import { User } from '../../domain/user';
-import { PasswordValidatorPolicy } from '../../domain/policies/Password-validator.policy';
 import { UserRoleAssignmentPolicy } from '../../domain/policies/user-role-assignment.policy';
-import { CreateUserDto } from '../dtos/create-user.dto';
 import { InvalidPasswordException } from '../../domain/exceptions/invalidPassword.exception';
 import type { RoleRepository } from '../../domain/repositories/role.repository';
 import type { IPasswordEncryptionService } from '../../domain/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from '../../domain/services/password-encryption.service';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import { ROLES } from '../../domain/role';
+import { CreateWorkerDto } from '../dtos/create-worker.dto';
 
-export type CreateUserUseCaseExceptions =
+export type CreateWorkerUseCaseExceptions =
     | InvalidPropsException
     | InvalidPasswordException
-    | RepositoryNoDataFoundException;
+    | RepositoryNoDataFoundException
+    | BusinessException;
 
-export class CreateUserUseCase {
+export interface CreateWorkerResponse {
+    id: string;
+    email: string;
+    serviceId: string;
+}
+
+@Injectable()
+export class CreateWorkerUseCase {
     constructor(
         @Inject('UserRepository')
         private readonly userRepository: UserRepository,
         @Inject('RoleRepository')
         private readonly roleRepository: RoleRepository,
-        private readonly passwordValidatorPolicy: PasswordValidatorPolicy,
         private readonly userRoleAssignmentPolicy: UserRoleAssignmentPolicy,
         @Inject(PASSWORD_ENCRYPTION_SERVICE_TOKEN)
         private readonly passwordEncryptionService: IPasswordEncryptionService,
     ) {}
 
     async execute(
-        props: CreateUserDto,
-    ): ResultAsync<CreateUserUseCaseExceptions, void> {
+        props: CreateWorkerDto,
+    ): ResultAsync<CreateWorkerUseCaseExceptions, CreateWorkerResponse> {
         const existingUserPromise = this.userRepository.findByEmailAndService(
             props.email.trim().toLowerCase(),
             props.serviceId,
         );
+
         const rolePromise = this.roleRepository.find(
-            props.roleIdNum || ROLES.CLIENT, // buscar roles no banco e adicionar uma coluna padrão na tabela para facilitar
+            props.roleIdNum || ROLES.WORKER,
         );
-        const creatorPromise = props.creatorUserId
-            ? this.userRepository.findById(props.creatorUserId)
-            : Promise.resolve(null);
+
+        const creatorPromise = this.userRepository.findById(
+            props.creatorUserId,
+        );
 
         const [existingUser, roleResult, creatorResult] = await Promise.all([
             existingUserPromise,
@@ -53,14 +61,15 @@ export class CreateUserUseCase {
             creatorPromise,
         ]);
 
-        if (existingUser.isOk())
+        if (existingUser.isOk()) {
             return R.error(
                 new BusinessException(
                     'Email já está em uso',
-                    'EMAIL_ALREADY_EXISTS',
+                    'EMAIL_ALREADY_EXISTS_IN_SERVICE',
                     409,
                 ),
             );
+        }
 
         if (
             existingUser.isErr() &&
@@ -68,31 +77,13 @@ export class CreateUserUseCase {
         ) {
             return R.error(existingUser.error);
         }
-
         if (roleResult.isErr()) return R.error(roleResult.error);
-
-        const passwordValidation = this.passwordValidatorPolicy.execute(
-            props.password,
-        );
-        if (passwordValidation.isErr())
-            return R.error(passwordValidation.error);
-
-        let creator: User | undefined;
-        if (props.creatorUserId) {
-            if (creatorResult?.isErr()) return R.error(creatorResult.error);
-
-            if (!creatorResult || creatorResult.isErr())
-                return R.error(
-                    creatorResult?.error ||
-                        new BusinessException('Criador não encontrado'),
-                );
-            creator = creatorResult.value;
-        }
+        if (creatorResult.isErr()) return R.error(creatorResult.error);
 
         const userRoleAssignResult =
             this.userRoleAssignmentPolicy.assignRoleToNewUser(
                 roleResult.value,
-                creator,
+                creatorResult.value,
                 props.serviceId,
             );
         if (userRoleAssignResult.isErr())
@@ -113,6 +104,10 @@ export class CreateUserUseCase {
         const saveResult = await this.userRepository.save(user.value);
         if (saveResult.isErr()) return R.error(saveResult.error);
 
-        return R.ok();
+        return R.ok({
+            id: user.value.id.toString(),
+            email: user.value.email,
+            serviceId: user.value.serviceId,
+        });
     }
 }
