@@ -50,7 +50,7 @@ export class AuthController extends Controller {
             password: createUserDto.password,
             roleIdNum: createUserDto.roleIdNum,
             creatorUserId: creatorUserId,
-            serviceId: 'auth-service',
+            serviceId: createUserDto.serviceId,
         });
 
         return this.buildResponse(result);

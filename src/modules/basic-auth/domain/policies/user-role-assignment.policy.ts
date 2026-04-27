@@ -15,7 +15,7 @@ import { RolePk } from '../role-pk.vo';
  * - MODERATOR: pode criar WORKER, GUEST, BANNED, CLIENT
  * - WORKER, GUEST, BANNED: não podem criar nada
  * - Sem autenticação: pode criar apenas CLIENT (role padrão)
- * - Nenhum usuário pode criar OWNER
+ * - OWNER: apenas OWNER do auth-service pode criar outros OWNER
  */
 @Injectable()
 export class UserRoleAssignmentPolicy {
@@ -57,15 +57,6 @@ export class UserRoleAssignmentPolicy {
     ): Result<UserWithoutPermissionException, void> {
         const roleToCreateId = roleToCreate.id as CompositeId<RolePk>;
 
-        // Ninguém pode criar OWNER
-        if (roleToCreateId.ids.idNum === ROLES.OWNER) {
-            return R.error(
-                new UserWithoutPermissionException(
-                    'Não é possível criar usuários com role OWNER',
-                ),
-            );
-        }
-
         if (!creator) {
             // Sem autenticação, pode criar apenas CLIENT
             if (roleToCreateId.ids.idNum === ROLES.CLIENT) {
@@ -103,16 +94,39 @@ export class UserRoleAssignmentPolicy {
         const creatorRoleId = creatorHighestRole.value
             .id as CompositeId<RolePk>;
 
+        // OWNER só pode criar OWNER se for OWNER do auth-service
+        if (roleToCreateId.ids.idNum === ROLES.OWNER) {
+            if (creatorRoleId.ids.idNum !== ROLES.OWNER) {
+                return R.error(
+                    new UserWithoutPermissionException(
+                        'Apenas OWNER pode criar usuários com role OWNER',
+                    ),
+                );
+            }
+
+            const isAuthServiceOwner = creator.userRoleList.some(
+                (ur) =>
+                    ur.serviceId === 'auth-service' &&
+                    (ur.role.id as CompositeId<RolePk>).ids.idNum ===
+                        ROLES.OWNER,
+            );
+
+            if (!isAuthServiceOwner) {
+                return R.error(
+                    new UserWithoutPermissionException(
+                        'Apenas OWNER do auth-service pode criar novos OWNER',
+                    ),
+                );
+            }
+
+            return R.ok();
+        }
+
         // OWNER pode criar qualquer role menor
         if (creatorRoleId.ids.idNum === ROLES.OWNER) {
             if (roleToCreateId.ids.idNum > ROLES.OWNER) {
                 return R.ok();
             }
-            return R.error(
-                new UserWithoutPermissionException(
-                    'OWNER não pode criar outra role OWNER',
-                ),
-            );
         }
 
         // ADMIN pode criar roles menores
