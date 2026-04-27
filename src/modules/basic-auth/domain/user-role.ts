@@ -28,9 +28,12 @@ export class UserRole extends Entity<UserRoleProps> {
 
         const setUserIdResult = instance.setUserId(props.userId || 'temp');
         const setRoleResult = instance.setRole(props.role);
-        instance.setServiceId(props.serviceId || 'temp');
+        const setServiceIdResult = instance.setServiceId(props.serviceId);
 
-        return R.getResult([setUserIdResult, setRoleResult], instance);
+        return R.getResult(
+            [setUserIdResult, setRoleResult, setServiceIdResult],
+            instance,
+        );
     }
 
     static build(
@@ -41,10 +44,13 @@ export class UserRole extends Entity<UserRoleProps> {
 
         const setUserIdResult = instance.setUserId(props.userId);
         const setRoleIdResult = instance.setRole(props.role);
-        instance.setServiceId(props.serviceId);
+        const setServiceIdResult = instance.setServiceId(props.serviceId);
         instance.props.assignedAt = props.assignedAt;
 
-        return R.getResult([setUserIdResult, setRoleIdResult], instance);
+        return R.getResult(
+            [setUserIdResult, setRoleIdResult, setServiceIdResult],
+            instance,
+        );
     }
 
     get userId(): string {
@@ -79,7 +85,11 @@ export class UserRole extends Entity<UserRoleProps> {
         return R.ok();
     }
 
-    private setServiceId(serviceId: string): void {
+    private setServiceId(serviceId?: string): Result<UserRoleException, void> {
+        if (!serviceId || serviceId.trim() === '') {
+            return R.error(new UserRoleException('Service ID é obrigatório'));
+        }
         this.props.serviceId = serviceId;
+        return R.ok();
     }
 }

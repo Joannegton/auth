@@ -23,6 +23,7 @@ import { BcryptPasswordEncryptionService } from './infra/services/password-encry
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from './domain/services/password-encryption.service';
 import { GoogleStrategy } from './infra/strategies/google.strategy';
 import { CreateServiceUseCase } from './application/usecases/create-service.usecase';
+import { ServicesController } from './application/controllers/services.controller';
 
 @Module({
     imports: [
@@ -36,7 +37,7 @@ import { CreateServiceUseCase } from './application/usecases/create-service.usec
         PassportModule.register({ defaultStrategy: 'jwt' }),
         SharedModule,
     ],
-    controllers: [AuthController, GoogleAuthController],
+    controllers: [AuthController, GoogleAuthController, ServicesController],
     providers: [
         CreateUserUseCase,
         LoginUseCase,
@@ -72,6 +73,11 @@ import { CreateServiceUseCase } from './application/usecases/create-service.usec
         ...Repositories,
         ...Mappers,
     ],
-    exports: ['UserRepository', 'RoleRepository', 'ServiceRepository', TokenGeneratorServiceImpl],
+    exports: [
+        'UserRepository',
+        'RoleRepository',
+        'ServiceRepository',
+        TokenGeneratorServiceImpl,
+    ],
 })
 export class BasicAuthModule {}

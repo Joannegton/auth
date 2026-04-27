@@ -53,6 +53,7 @@ export class User extends AggregateRoot<UserProps> {
         const userRole = UserRole.create({
             userId: instance.id.toString(),
             role: props.role,
+            serviceId: props.serviceId,
         });
         if (userRole.isErr()) return R.error(userRole.error);
 
