@@ -8,6 +8,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { OptionalJwtAuthGuard } from 'src/shared/infra/guards/optional-jwt-auth.guard';
 import { CreateUserUseCase } from '../usecases/create-user.usecase';
 import { LoginUseCase } from '../../application/usecases/login.usecase';
 import { RefreshTokenUseCase } from '../../application/usecases/refresh-token.usecase';
@@ -40,7 +41,7 @@ export class AuthController extends Controller {
 
     @Post('register')
     @HttpCode(HttpStatus.OK)
-    @UseGuards(ThrottlerGuard)
+    @UseGuards(ThrottlerGuard, OptionalJwtAuthGuard)
     async register(
         @Body() createUserDto: CreateUserDto,
         @ExtractUserId() creatorUserId?: string,

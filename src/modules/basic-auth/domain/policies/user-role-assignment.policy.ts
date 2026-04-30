@@ -21,8 +21,8 @@ import { RolePk } from '../role-pk.vo';
 export class UserRoleAssignmentPolicy {
     assignRoleToNewUser(
         roleToAssign: Role,
+        serviceId: string,
         creator?: User,
-        serviceId?: string,
     ): Result<UserWithoutPermissionException | UserRoleException, UserRole> {
         if (!roleToAssign) {
             return R.error(
@@ -32,8 +32,8 @@ export class UserRoleAssignmentPolicy {
 
         const authResult = this.validateCreatorPermission(
             roleToAssign,
-            creator,
             serviceId,
+            creator,
         );
         if (authResult.isErr()) {
             return R.error(authResult.error);
@@ -41,6 +41,7 @@ export class UserRoleAssignmentPolicy {
 
         const userRoleResult = UserRole.create({
             role: roleToAssign,
+            serviceId,
         });
 
         if (userRoleResult.isErr()) {
@@ -52,8 +53,8 @@ export class UserRoleAssignmentPolicy {
 
     private validateCreatorPermission(
         roleToCreate: Role,
+        serviceId: string,
         creator?: User,
-        serviceId?: string,
     ): Result<UserWithoutPermissionException, void> {
         const roleToCreateId = roleToCreate.id as CompositeId<RolePk>;
 
@@ -69,17 +70,25 @@ export class UserRoleAssignmentPolicy {
             );
         }
 
-        // Validar que creator tem pelo menos uma role no serviceId
-        const creatorRoleInService = creator.userRoleList.filter(
-            (ur) => !serviceId || ur.serviceId === serviceId,
+        // Verificar se é OWNER do auth-service (pode criar em qualquer serviço)
+        const isAuthServiceOwner = creator.userRoleList.some(
+            (ur) =>
+                (ur.role.id as CompositeId<RolePk>).ids.idNum === ROLES.OWNER,
         );
 
-        if (creatorRoleInService.length === 0) {
-            return R.error(
-                new UserWithoutPermissionException(
-                    `Creator não tem role no serviço ${serviceId}`,
-                ),
+        // Se não é OWNER do auth-service, validar que tem role no serviceId
+        if (!isAuthServiceOwner) {
+            const creatorRoleInService = creator.userRoleList.filter(
+                (ur) => ur.serviceId === serviceId,
             );
+
+            if (creatorRoleInService.length === 0) {
+                return R.error(
+                    new UserWithoutPermissionException(
+                        `Creator não tem role no serviço ${serviceId}`,
+                    ),
+                );
+            }
         }
 
         const creatorHighestRole = creator.getHighestRole();
@@ -103,13 +112,6 @@ export class UserRoleAssignmentPolicy {
                     ),
                 );
             }
-
-            const isAuthServiceOwner = creator.userRoleList.some(
-                (ur) =>
-                    ur.serviceId === 'auth-service' &&
-                    (ur.role.id as CompositeId<RolePk>).ids.idNum ===
-                        ROLES.OWNER,
-            );
 
             if (!isAuthServiceOwner) {
                 return R.error(

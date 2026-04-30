@@ -41,9 +41,13 @@ export class UserRepositoryImpl implements UserRepository {
         email: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { email },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.email = :email', { email })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -70,9 +74,16 @@ export class UserRepositoryImpl implements UserRepository {
         serviceId: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { email, serviceId },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.email = :email AND user.service_id = :serviceId', {
+                    email,
+                    serviceId,
+                })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -101,9 +112,13 @@ export class UserRepositoryImpl implements UserRepository {
 
     async findById(id: string): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { id },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.id = :id', { id })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -129,9 +144,13 @@ export class UserRepositoryImpl implements UserRepository {
         googleId: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { googleId },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.google_id = :googleId', { googleId })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(

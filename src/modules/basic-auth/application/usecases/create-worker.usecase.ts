@@ -83,8 +83,8 @@ export class CreateWorkerUseCase {
         const userRoleAssignResult =
             this.userRoleAssignmentPolicy.assignRoleToNewUser(
                 roleResult.value,
-                creatorResult.value,
                 props.serviceId,
+                creatorResult.value,
             );
         if (userRoleAssignResult.isErr())
             return R.error(userRoleAssignResult.error);

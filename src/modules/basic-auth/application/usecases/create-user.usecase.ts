@@ -92,8 +92,8 @@ export class CreateUserUseCase {
         const userRoleAssignResult =
             this.userRoleAssignmentPolicy.assignRoleToNewUser(
                 roleResult.value,
-                creator,
                 props.serviceId,
+                creator,
             );
         if (userRoleAssignResult.isErr())
             return R.error(userRoleAssignResult.error);

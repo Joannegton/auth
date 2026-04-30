@@ -6,7 +6,7 @@ import { Role } from './role';
 export type CreateUserRoleProps = {
     userId?: string;
     role: Role;
-    serviceId?: string;
+    serviceId: string;
 };
 
 export type UserRoleProps = {
@@ -85,7 +85,7 @@ export class UserRole extends Entity<UserRoleProps> {
         return R.ok();
     }
 
-    private setServiceId(serviceId?: string): Result<UserRoleException, void> {
+    private setServiceId(serviceId: string): Result<UserRoleException, void> {
         if (!serviceId || serviceId.trim() === '') {
             return R.error(new UserRoleException('Service ID é obrigatório'));
         }
