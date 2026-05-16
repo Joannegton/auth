@@ -12,7 +12,10 @@
       "Bash(npm run:*)",
       "Read(//tmp/**)",
       "Bash(npm test:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose -f docker-compose.postgres.yml down -v)",
+      "Bash(docker-compose -f docker-compose.postgres.yml up -d)"
     ]
   }
 }

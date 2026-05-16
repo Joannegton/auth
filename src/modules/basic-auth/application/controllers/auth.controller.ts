@@ -7,6 +7,7 @@ import {
     HttpStatus,
     UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { OptionalJwtAuthGuard } from 'src/shared/infra/guards/optional-jwt-auth.guard';
 import { CreateUserUseCase } from '../usecases/create-user.usecase';
@@ -26,6 +27,7 @@ import { Controller } from 'src/shared/infra/http/controller';
 import { TokenGeneratorServiceImpl } from '../../infra/services/token-generator.service';
 import { JwtAuthGuard } from 'src/shared/infra/guards/jwt-auth.guard';
 
+@ApiTags('Auth')
 @NestController('auth')
 export class AuthController extends Controller {
     constructor(
@@ -39,6 +41,8 @@ export class AuthController extends Controller {
         super();
     }
 
+    @ApiOperation({ summary: 'Registrar usuário', description: 'Cria um novo usuário no serviço especificado.' })
+    @ApiResponse({ status: 200, description: 'Usuário criado com sucesso' })
     @Post('register')
     @HttpCode(HttpStatus.OK)
     @UseGuards(ThrottlerGuard, OptionalJwtAuthGuard)
@@ -57,6 +61,9 @@ export class AuthController extends Controller {
         return this.buildResponse(result);
     }
 
+    @ApiOperation({ summary: 'Login', description: 'Autentica com email + senha e retorna access + refresh tokens.' })
+    @ApiResponse({ status: 200, description: 'Login bem-sucedido — retorna accessToken e refreshToken' })
+    @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
     @Post('login')
     @HttpCode(HttpStatus.OK)
     @UseGuards(ThrottlerGuard)
@@ -76,6 +83,8 @@ export class AuthController extends Controller {
         return this.buildResponse(result);
     }
 
+    @ApiOperation({ summary: 'Refresh token', description: 'Gera novos access + refresh tokens a partir de um refresh token válido.' })
+    @ApiResponse({ status: 200, description: 'Tokens renovados' })
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
     async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -86,6 +95,8 @@ export class AuthController extends Controller {
         return this.buildResponse(result);
     }
 
+    @ApiOperation({ summary: 'Logout', description: 'Invalida o refresh token do usuário autenticado.' })
+    @ApiBearerAuth()
     @Post('logout')
     @HttpCode(HttpStatus.OK)
     @UseGuards(JwtAuthGuard)
@@ -116,6 +127,8 @@ export class AuthController extends Controller {
         return this.buildResponse(result);
     }
 
+    @ApiOperation({ summary: 'Public key RS256', description: 'Retorna a chave pública RSA usada para verificar JWTs emitidos por este serviço.' })
+    @ApiResponse({ status: 200, description: 'PEM da chave pública' })
     @Get('public-key')
     @HttpCode(HttpStatus.OK)
     getPublicKey() {

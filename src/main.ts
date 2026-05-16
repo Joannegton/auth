@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './shared/infra/filters/exception.filter';
 
@@ -51,6 +52,24 @@ async function bootstrap() {
     );
 
     app.useGlobalFilters(new GlobalExceptionFilter());
+
+    if (process.env.ENABLE_DOCS === 'true') {
+        const config = new DocumentBuilder()
+            .setTitle('Auth Service')
+            .setDescription(
+                'API de autenticação — registro, login, refresh token e gestão de serviços. ' +
+                'Use POST /auth/login com as credenciais de demo para obter um JWT e testar os endpoints protegidos.',
+            )
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
+
+        const document = SwaggerModule.createDocument(app, config);
+        SwaggerModule.setup('docs', app, document, {
+            swaggerOptions: { persistAuthorization: true },
+        });
+        console.log('📖 Swagger disponível em /docs');
+    }
 
     const port = process.env.PORT ?? 5000;
     await app.listen(port);

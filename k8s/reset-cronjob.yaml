@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: auth-demo-reset
+  namespace: demos
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+
+          containers:
+            - name: reset
+              image: postgres:16-alpine
+              env:
+                - name: PGHOST
+                  value: auth-demo-postgres
+                - name: PGPORT
+                  value: "5432"
+                - name: PGDATABASE
+                  value: auth_demo
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: auth-demo-secrets
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: auth-demo-secrets
+                      key: POSTGRES_PASSWORD
+
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Iniciando reset do banco de dados demo..."
+
+                  # Terminar conexões ativas (exceto a atual)
+                  psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'auth_demo' AND pid <> pg_backend_pid();"
+
+                  # Dropar e recriar todas as tabelas
+                  psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+                  echo "Schema resetado. Aguardando auth-demo reiniciar migrations..."
+
+                  # Forçar restart do pod do auth (via kubectl não disponível aqui — usar preStop + readiness)
+                  # O auth roda migrations no startup, então basta reiniciar o deployment via workflow ou manualmente:
+                  # kubectl rollout restart deployment/auth-demo -n demos
+
+                  echo "Reset concluído em $(date)"
