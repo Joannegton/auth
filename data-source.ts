@@ -12,9 +12,11 @@ export const AppDataSource = new DataSource({
     database: process.env.DB_NAME || 'auth_db',
     entities: [
         'src/modules/**/infra/models/*.model.ts',
+        'dist/src/modules/**/infra/models/*.model.js',
     ],
     migrations: [
         'src/shared/infra/migrations/*.ts',
+        'dist/src/shared/infra/migrations/*.js',
     ],
     synchronize: false,
     logging: process.env.NODE_ENV === 'development',
