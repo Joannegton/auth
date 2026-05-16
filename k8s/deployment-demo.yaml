@@ -85,7 +85,7 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /health
+              path: /auth/public-key
               port: 5000
             initialDelaySeconds: 15
             periodSeconds: 10
@@ -93,7 +93,7 @@ spec:
 
           livenessProbe:
             httpGet:
-              path: /health
+              path: /auth/public-key
               port: 5000
             initialDelaySeconds: 30
             periodSeconds: 15
