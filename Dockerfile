@@ -32,11 +32,8 @@ RUN npm ci --only=production
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy entrypoint script and migrations
+# Copy entrypoint script
 COPY entrypoint.sh ./
-COPY src/shared/infra/migrations ./dist/src/shared/infra/migrations
-
-COPY src/data-source.ts ./data-source.ts
 
 # Make entrypoint executable and create non-root user
 RUN chmod +x entrypoint.sh && \
