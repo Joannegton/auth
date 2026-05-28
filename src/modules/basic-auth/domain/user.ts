@@ -89,6 +89,12 @@ export class User extends AggregateRoot<UserProps> {
         this.setAvatarUrl(avatarUrl);
     }
 
+    changePassword(hashedPassword: string): void {
+        this.setPassword(hashedPassword);
+        this.setProvider('local');
+        this.props.updatedAt = new Date();
+    }
+
     addSession(props: CreateSessionProps): Result<UserException, void> {
         this.revokeSession();
 

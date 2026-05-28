@@ -2,6 +2,14 @@
 
 > **Identity Provider (IdP)** central para o ecossistema de aplicações, com foco em segurança, escalabilidade e DDD.
 
+> ## ⚠️ PENDÊNCIA — E-MAIL DO RESET DE SENHA NÃO É REAL
+>
+> O fluxo de **reset de senha por código (OTP)** (`POST /auth/forgot-password` e `POST /auth/reset-password`) está implementado, **mas o envio de e-mail é um stub de desenvolvimento**: `LogEmailService` apenas **registra o código no log do servidor** — ele **não chega ao usuário**.
+>
+> **Antes de produção:** implementar um adaptador real de `IEmailService` (SMTP / SendGrid / SES) e registrá-lo no lugar do `LogEmailService` em `basic-auth.module.ts`. Sem isso, ninguém consegue redefinir a senha de fato.
+>
+> Operacional: rodar a migration `1748300000000-CreatePasswordResetCodes` (tabela `password_reset_codes`).
+
 ## 📊 Status do Projeto
 
 | Aspecto                         | Status  | Observações                                                               |
@@ -14,6 +22,7 @@
 | **Refresh Tokens**              | ✅ 100% | Geração + armazenamento seguro em DB com revogação imediata               |
 | **Rate Limiting**               | ✅ 100% | Implementado em /login, /register, /google                                |
 | **Session Revocation (Logout)** | ✅ 100% | POST /auth/logout com revogação de todas as sessões                       |
+| **Reset de senha (OTP)**        | ⚠️ Parcial | Fluxo forgot/reset pronto; **e-mail é stub (`LogEmailService` só loga)** — configurar provedor real em produção |
 | **Helmet**                      | ✅ 100% | Headers de segurança configurados                                         |
 | **CORS**                        | ✅ 100% | Whitelist de domínios configurada                                         |
 | **Fingerprinting**              | ✅ 100% | User-Agent + IP validation implementado                                   |

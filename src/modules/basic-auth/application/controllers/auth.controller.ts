@@ -15,9 +15,13 @@ import { LoginUseCase } from '../../application/usecases/login.usecase';
 import { RefreshTokenUseCase } from '../../application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from '../../application/usecases/logout.usecase';
 import { CreateWorkerUseCase } from '../usecases/create-worker.usecase';
+import { ForgotPasswordUseCase } from '../usecases/forgot-password.usecase';
+import { ResetPasswordUseCase } from '../usecases/reset-password.usecase';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { LoginDto, RefreshTokenDto } from '../dtos/login.dto';
 import { CreateWorkerDto } from '../dtos/create-worker.dto';
+import { ForgotPasswordDto } from '../dtos/forgot-password.dto';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { ExtractUserId } from '../../domain/decorators/extract-user-id.decorator';
 import {
     ExtractRequestInfo,
@@ -36,6 +40,8 @@ export class AuthController extends Controller {
         private readonly refreshTokenUseCase: RefreshTokenUseCase,
         private readonly logoutUseCase: LogoutUseCase,
         private readonly createWorkerUseCase: CreateWorkerUseCase,
+        private readonly forgotPasswordUseCase: ForgotPasswordUseCase,
+        private readonly resetPasswordUseCase: ResetPasswordUseCase,
         private readonly tokenGenerator: TokenGeneratorServiceImpl,
     ) {
         super();
@@ -124,6 +130,35 @@ export class AuthController extends Controller {
             creatorUserId: userId,
         });
 
+        return this.buildResponse(result);
+    }
+
+    @ApiOperation({ summary: 'Esqueci a senha', description: 'Gera um código de redefinição e o envia por e-mail (não revela se o e-mail existe).' })
+    @ApiResponse({ status: 200, description: 'Solicitação recebida' })
+    @Post('forgot-password')
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(ThrottlerGuard)
+    async forgotPassword(@Body() dto: ForgotPasswordDto) {
+        const result = await this.forgotPasswordUseCase.execute(
+            dto.email,
+            dto.serviceId,
+        );
+        return this.buildResponse(result);
+    }
+
+    @ApiOperation({ summary: 'Redefinir senha', description: 'Redefine a senha usando o código recebido por e-mail.' })
+    @ApiResponse({ status: 200, description: 'Senha redefinida' })
+    @ApiResponse({ status: 400, description: 'Código inválido ou expirado' })
+    @Post('reset-password')
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(ThrottlerGuard)
+    async resetPassword(@Body() dto: ResetPasswordDto) {
+        const result = await this.resetPasswordUseCase.execute(
+            dto.email,
+            dto.serviceId,
+            dto.code,
+            dto.newPassword,
+        );
         return this.buildResponse(result);
     }
 

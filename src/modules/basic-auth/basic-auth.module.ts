@@ -8,11 +8,18 @@ import { RefreshTokenUseCase } from './application/usecases/refresh-token.usecas
 import { LogoutUseCase } from './application/usecases/logout.usecase';
 import { CreateWorkerUseCase } from './application/usecases/create-worker.usecase';
 import { GoogleLoginUseCase } from './application/usecases/google-login.usecase';
+import { ForgotPasswordUseCase } from './application/usecases/forgot-password.usecase';
+import { ResetPasswordUseCase } from './application/usecases/reset-password.usecase';
 import { UserModel } from './infra/models/user.model';
 import { SessionModel } from './infra/models/session.model';
 import { UserRoleModel } from './infra/models/user-roles.model';
 import { RoleModel } from './infra/models/role.model';
 import { ServiceModel } from './infra/models/service.model';
+import { PasswordResetCodeModel } from './infra/models/password-reset-code.model';
+import { PasswordResetCodeRepositoryImpl } from './infra/repositories/password-reset-code.repository';
+import { PASSWORD_RESET_CODE_REPOSITORY } from './domain/repositories/password-reset-code.repository';
+import { LogEmailService } from './infra/services/log-email.service';
+import { EMAIL_SERVICE_TOKEN } from './domain/services/email.service';
 import { AuthController } from './application/controllers/auth.controller';
 import { GoogleAuthController } from './application/controllers/google-auth.controller';
 import { Policies } from './domain/policies';
@@ -33,6 +40,7 @@ import { ServicesController } from './application/controllers/services.controlle
             UserRoleModel,
             RoleModel,
             ServiceModel,
+            PasswordResetCodeModel,
         ]),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         SharedModule,
@@ -46,6 +54,16 @@ import { ServicesController } from './application/controllers/services.controlle
         CreateWorkerUseCase,
         CreateServiceUseCase,
         GoogleLoginUseCase,
+        ForgotPasswordUseCase,
+        ResetPasswordUseCase,
+        {
+            provide: PASSWORD_RESET_CODE_REPOSITORY,
+            useClass: PasswordResetCodeRepositoryImpl,
+        },
+        {
+            provide: EMAIL_SERVICE_TOKEN,
+            useClass: LogEmailService,
+        },
         TokenGeneratorServiceImpl,
         {
             provide: 'TokenGenerator',
