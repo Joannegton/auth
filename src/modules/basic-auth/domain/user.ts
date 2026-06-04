@@ -17,6 +17,8 @@ export type CreateUserProps = Omit<
 
 export type UserProps = {
     email: string;
+    name?: string;
+    phone?: string;
     password?: string;
     googleId?: string;
     provider: string;
@@ -45,6 +47,8 @@ export class User extends AggregateRoot<UserProps> {
 
         const setServiceId = instance.setServiceId(props.serviceId);
 
+        instance.setName(props.name);
+        instance.setPhone(props.phone);
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider ?? 'local');
@@ -69,6 +73,8 @@ export class User extends AggregateRoot<UserProps> {
         const setUserRoles = instance.setUserRoles(props.userRoles);
         const setServiceId = instance.setServiceId(props.serviceId);
 
+        instance.setName(props.name);
+        instance.setPhone(props.phone);
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider);
@@ -187,6 +193,14 @@ export class User extends AggregateRoot<UserProps> {
         return this.props.email;
     }
 
+    get name(): string | undefined {
+        return this.props.name;
+    }
+
+    get phone(): string | undefined {
+        return this.props.phone;
+    }
+
     get password(): string | undefined {
         return this.props.password;
     }
@@ -246,6 +260,14 @@ export class User extends AggregateRoot<UserProps> {
 
         this.props.email = normalizedEmail;
         return R.ok();
+    }
+
+    private setName(name?: string): void {
+        this.props.name = name?.trim() || undefined;
+    }
+
+    private setPhone(phone?: string): void {
+        this.props.phone = phone?.trim() || undefined;
     }
 
     private setPassword(password?: string): void {

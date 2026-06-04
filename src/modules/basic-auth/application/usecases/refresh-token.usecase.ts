@@ -50,6 +50,7 @@ export class RefreshTokenUseCase {
             user.value.email,
             user.value.serviceId,
             idsNumUserRoles.value,
+            { name: user.value.name, phone: user.value.phone },
         );
 
         await this.auditLog.logTokenRefresh(

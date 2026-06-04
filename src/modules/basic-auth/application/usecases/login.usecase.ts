@@ -95,6 +95,7 @@ export class LoginUseCase {
             user.value.email,
             user.value.serviceId,
             roleIds.value,
+            { name: user.value.name, phone: user.value.phone },
         );
 
         const addSession = user.value.addSession({

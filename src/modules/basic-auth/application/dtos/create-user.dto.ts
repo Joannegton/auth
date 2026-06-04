@@ -3,7 +3,11 @@ import {
     IsNumber,
     IsPositive,
     IsOptional,
+    IsString,
     IsUUID,
+    Matches,
+    MaxLength,
+    MinLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -14,6 +18,20 @@ export class CreateUserDto {
     @IsEmail({}, { message: 'Email deve ser um endereço de email válido' })
     @Transform(({ value }) => value?.trim().toLowerCase())
     email: string;
+
+    @ApiPropertyOptional({ example: 'Maria Silva', description: 'Nome do usuário' })
+    @IsOptional()
+    @IsString()
+    @MinLength(2, { message: 'Nome muito curto' })
+    @MaxLength(120)
+    name?: string;
+
+    @ApiPropertyOptional({ example: '(11) 98888-7777', description: 'Telefone do usuário' })
+    @IsOptional()
+    @IsString()
+    @Matches(/^\+?[0-9\s().-]{10,20}$/, { message: 'Telefone inválido' })
+    @MaxLength(20)
+    phone?: string;
 
     @ApiProperty({ example: 'Senha@123!', description: 'Senha forte (mín. 8 chars, maiúscula, minúscula, número e símbolo)' })
     @IsStrongPassword({

@@ -58,6 +58,8 @@ export class AuthController extends Controller {
     ) {
         const result = await this.criarUsuarioUseCase.execute({
             email: createUserDto.email,
+            name: createUserDto.name,
+            phone: createUserDto.phone,
             password: createUserDto.password,
             roleIdNum: createUserDto.roleIdNum,
             creatorUserId: creatorUserId,

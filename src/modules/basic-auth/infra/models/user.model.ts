@@ -16,6 +16,8 @@ import { Model } from '../../../../shared/domain/model';
 export interface UserProps {
     id: string;
     email: string;
+    name?: string;
+    phone?: string;
     password?: string;
     googleId?: string;
     provider: string;
@@ -34,6 +36,12 @@ export class UserModel extends Model<UserProps> implements UserProps {
 
     @Column({ name: 'email', type: 'varchar' })
     email: string;
+
+    @Column({ name: 'name', type: 'varchar', nullable: true })
+    name: string;
+
+    @Column({ name: 'phone', type: 'varchar', nullable: true })
+    phone: string;
 
     @Column({ name: 'password', select: false, nullable: true })
     password: string;

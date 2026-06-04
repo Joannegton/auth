@@ -4,6 +4,8 @@ import { Result } from 'src/shared/domain/result';
 export interface TokenPayload {
     sub: string;
     email: string;
+    name?: string;
+    phone?: string;
     serviceId: string;
     roles: number[];
     iat: number;
@@ -22,6 +24,7 @@ export interface TokenGeneratorService {
         email: string,
         serviceId: string,
         roles: number[],
+        extra?: { name?: string; phone?: string },
     ): AuthTokens;
     verifyToken(token: string): Result<ServiceException, TokenPayload>;
     getPublicKey(): string;

@@ -103,6 +103,8 @@ export class CreateUserUseCase {
 
         const user = User.create({
             email: props.email,
+            name: props.name,
+            phone: props.phone,
             password: hashedPassword,
             provider: 'local',
             serviceId: props.serviceId,

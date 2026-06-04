@@ -7,6 +7,8 @@ import { R, Result } from 'src/shared/domain/result';
 export interface TokenPayload {
     sub: string;
     email: string;
+    name?: string;
+    phone?: string;
     serviceId: string;
     roles: number[];
     iat: number;
@@ -64,13 +66,18 @@ export class TokenGeneratorServiceImpl implements TokenGeneratorService {
         email: string,
         serviceId: string,
         idNumRoles: number[], // mudar para ids string, verificar
+        extra?: { name?: string; phone?: string },
     ): AuthTokens {
-        const payload = {
+        const payload: Record<string, unknown> = {
             sub: userId,
             email,
             serviceId,
             roles: idNumRoles,
         };
+        // Claims opcionais — só incluídos quando o usuário os possui, para não
+        // inchar tokens dos produtos que não usam esses campos.
+        if (extra?.name) payload.name = extra.name;
+        if (extra?.phone) payload.phone = extra.phone;
 
         const accessToken = jwt.sign(payload, this.privateKey, {
             algorithm: 'RS256',
