@@ -13,8 +13,10 @@ export class UpdateRolesToIncludeOwner1712283000000 implements MigrationInterfac
             return;
         }
 
-        // Desabilitar triggers para evitar violação de constraint
-        await queryRunner.query(`ALTER TABLE user_roles DISABLE TRIGGER ALL`);
+        // Desabilitar triggers de usuário para evitar violação de constraint.
+        // USER (não ALL): ALL inclui os triggers de sistema das FKs, cuja
+        // desativação exige superuser — e a app roda como auth_app (não-super).
+        await queryRunner.query(`ALTER TABLE user_roles DISABLE TRIGGER USER`);
 
         try {
             // Renumera os roles existentes
@@ -39,13 +41,13 @@ export class UpdateRolesToIncludeOwner1712283000000 implements MigrationInterfac
             console.log('✓ Role OWNER criado e outros roles renumerados');
         } finally {
             // Reabilitar triggers
-            await queryRunner.query(`ALTER TABLE user_roles ENABLE TRIGGER ALL`);
+            await queryRunner.query(`ALTER TABLE user_roles ENABLE TRIGGER USER`);
         }
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Desabilitar triggers para evitar violação de constraint
-        await queryRunner.query(`ALTER TABLE user_roles DISABLE TRIGGER ALL`);
+        // Desabilitar triggers de usuário (USER, não ALL — ver nota no up())
+        await queryRunner.query(`ALTER TABLE user_roles DISABLE TRIGGER USER`);
 
         try {
             // Remove o role OWNER
@@ -61,7 +63,7 @@ export class UpdateRolesToIncludeOwner1712283000000 implements MigrationInterfac
             );
         } finally {
             // Reabilitar triggers
-            await queryRunner.query(`ALTER TABLE user_roles ENABLE TRIGGER ALL`);
+            await queryRunner.query(`ALTER TABLE user_roles ENABLE TRIGGER USER`);
         }
     }
 }
