@@ -54,6 +54,7 @@ export class Session extends Entity<SessionProps> {
 
         instance.setIsRevoked(props.isRevoked);
         instance.setUserAgent(props.userAgent);
+        instance.setInfinity(props.infinity);
 
         return R.getResult([refreshTokenResult, expiresAtResult], instance);
     }

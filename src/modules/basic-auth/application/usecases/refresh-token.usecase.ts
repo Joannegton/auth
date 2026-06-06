@@ -6,15 +6,23 @@ import {
 } from '../../infra/services/token-generator.service';
 import { AuditLogService } from '../../../../shared/infra/services/audit-log.service';
 import { R, ResultAsync } from '../../../../shared/domain/result';
-import { RepositoryException } from '../../../../shared/domain/exceptions';
+import {
+    RepositoryException,
+    RepositoryNoDataFoundException,
+} from '../../../../shared/domain/exceptions';
 import { SessionInvalidException } from '../../domain/exceptions/session-invalid.exception';
+import { UserException } from '../../domain/exceptions/user.exception';
 
 export interface RefreshTokenInput {
     refreshToken: string;
     userAgent?: string;
 }
 
-export type RefreshTokenUseCaseExceptions = RepositoryException;
+export type RefreshTokenUseCaseExceptions =
+    | RepositoryException
+    | RepositoryNoDataFoundException
+    | SessionInvalidException
+    | UserException;
 
 @Injectable()
 export class RefreshTokenUseCase {
@@ -45,6 +53,13 @@ export class RefreshTokenUseCase {
         );
         if (idsNumUserRoles.isErr()) return R.error(idsNumUserRoles.error);
 
+        // Preserva o flag de sessão infinita antes de rotacionar, já que
+        // addSession revoga as sessões válidas atuais.
+        const currentSession = user.value.sessions?.find(
+            (s) => s.refreshToken === props.refreshToken,
+        );
+        const wasInfinity = currentSession?.infinity ?? false;
+
         const tokens = this.tokenGenerator.generateTokens(
             user.value.id.toString(),
             user.value.email,
@@ -52,6 +67,20 @@ export class RefreshTokenUseCase {
             idsNumUserRoles.value,
             { name: user.value.name, phone: user.value.phone },
         );
+
+        // Rotação de refresh token: revoga a sessão antiga e persiste a nova,
+        // espelhando o LoginUseCase. Sem isso o banco continuaria apenas com o
+        // refresh token anterior e o próximo refresh falharia com "Sessao invalida".
+        const addSession = user.value.addSession({
+            refreshToken: tokens.refreshToken,
+            expiresAt: this.tokenGenerator.getRefreshTokenExpiryDays(),
+            userAgent: props.userAgent,
+            infinity: wasInfinity,
+        });
+        if (addSession.isErr()) return R.error(addSession.error);
+
+        const saveResult = await this.userRepository.save(user.value);
+        if (saveResult.isErr()) return R.error(saveResult.error);
 
         await this.auditLog.logTokenRefresh(
             user.value.id.toString(),
