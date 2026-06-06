@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './shared/infra/filters/exception.filter';
+import { LoggingInterceptor } from './shared/infra/interceptors/logging.interceptor';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -52,6 +53,7 @@ async function bootstrap() {
     );
 
     app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalInterceptors(new LoggingInterceptor());
 
     if (process.env.ENABLE_DOCS === 'true') {
         const config = new DocumentBuilder()

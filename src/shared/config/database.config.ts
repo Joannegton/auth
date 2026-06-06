@@ -21,7 +21,7 @@ class ConfigService {
                 ? ['dist/**/*.migration.js']
                 : ['src/**/*.migration.ts'],
             synchronize: false,
-            logging: process.env.NODE_ENV === 'development',
+            logging: false,
         };
     }
 }
