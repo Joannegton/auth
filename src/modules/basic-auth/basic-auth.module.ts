@@ -19,6 +19,7 @@ import { PasswordResetCodeModel } from './infra/models/password-reset-code.model
 import { PasswordResetCodeRepositoryImpl } from './infra/repositories/password-reset-code.repository';
 import { PASSWORD_RESET_CODE_REPOSITORY } from './domain/repositories/password-reset-code.repository';
 import { LogEmailService } from './infra/services/log-email.service';
+import { NodemailerEmailService } from './infra/services/nodemailer-email.service';
 import { EMAIL_SERVICE_TOKEN } from './domain/services/email.service';
 import { AuthController } from './application/controllers/auth.controller';
 import { GoogleAuthController } from './application/controllers/google-auth.controller';
@@ -61,8 +62,15 @@ import { ServicesController } from './application/controllers/services.controlle
             useClass: PasswordResetCodeRepositoryImpl,
         },
         {
+            // Com EMAIL_USER/EMAIL_PASS configurados, envia de verdade (Gmail);
+            // sem credencial, mantém o adaptador de log (dev). useFactory (e não
+            // useClass com ternário) para a decisão rodar DEPOIS do dotenv,
+            // não no momento em que o módulo é importado.
             provide: EMAIL_SERVICE_TOKEN,
-            useClass: LogEmailService,
+            useFactory: () =>
+                process.env.EMAIL_USER && process.env.EMAIL_PASS
+                    ? new NodemailerEmailService()
+                    : new LogEmailService(),
         },
         TokenGeneratorServiceImpl,
         {
