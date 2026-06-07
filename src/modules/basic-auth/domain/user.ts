@@ -17,10 +17,13 @@ export type CreateUserProps = Omit<
 
 export type UserProps = {
     email: string;
+    name?: string;
+    phone?: string;
     password?: string;
     googleId?: string;
     provider: string;
     avatarUrl?: string;
+    serviceId: string;
     createdAt: Date;
     updatedAt?: Date;
     userRoles: UserRole[];
@@ -42,6 +45,10 @@ export class User extends AggregateRoot<UserProps> {
             );
         }
 
+        const setServiceId = instance.setServiceId(props.serviceId);
+
+        instance.setName(props.name);
+        instance.setPhone(props.phone);
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider ?? 'local');
@@ -50,12 +57,13 @@ export class User extends AggregateRoot<UserProps> {
         const userRole = UserRole.create({
             userId: instance.id.toString(),
             role: props.role,
+            serviceId: props.serviceId,
         });
         if (userRole.isErr()) return R.error(userRole.error);
 
         const setRolesResult = instance.setUserRoles([userRole.value]);
 
-        return R.getResult([setEmail, setRolesResult], instance);
+        return R.getResult([setEmail, setRolesResult, setServiceId], instance);
     }
 
     static build(props: UserProps, id: string): Result<UserException, User> {
@@ -63,7 +71,10 @@ export class User extends AggregateRoot<UserProps> {
 
         const setEmailResult = instance.setEmail(props.email);
         const setUserRoles = instance.setUserRoles(props.userRoles);
+        const setServiceId = instance.setServiceId(props.serviceId);
 
+        instance.setName(props.name);
+        instance.setPhone(props.phone);
         instance.setPassword(props.password);
         instance.setGoogleId(props.googleId);
         instance.setProvider(props.provider);
@@ -72,13 +83,22 @@ export class User extends AggregateRoot<UserProps> {
         instance.props.createdAt = props.createdAt;
         instance.props.updatedAt = props.updatedAt;
 
-        return R.getResult([setEmailResult, setUserRoles], instance);
+        return R.getResult(
+            [setEmailResult, setUserRoles, setServiceId],
+            instance,
+        );
     }
 
     addGoogleInfo(googleId: string, avatarUrl?: string): void {
         this.setGoogleId(googleId);
         this.setProvider('google');
         this.setAvatarUrl(avatarUrl);
+    }
+
+    changePassword(hashedPassword: string): void {
+        this.setPassword(hashedPassword);
+        this.setProvider('local');
+        this.props.updatedAt = new Date();
     }
 
     addSession(props: CreateSessionProps): Result<UserException, void> {
@@ -153,8 +173,32 @@ export class User extends AggregateRoot<UserProps> {
         );
     }
 
+    getIdsNumUserRolesService(
+        serviceId: string,
+    ): Result<UserException, number[]> {
+        const roleIds = this.props.userRoles
+            .filter((ur) => ur.serviceId === serviceId)
+            .map((ur) => ur.role.id as CompositeId<RolePk>);
+
+        if (roleIds.length === 0) {
+            return R.error(new UserException('Usuário não tem papéis'));
+        }
+
+        const roleIdsNum = roleIds.map((id) => id.ids.idNum);
+
+        return R.ok(roleIdsNum);
+    }
+
     get email(): string {
         return this.props.email;
+    }
+
+    get name(): string | undefined {
+        return this.props.name;
+    }
+
+    get phone(): string | undefined {
+        return this.props.phone;
     }
 
     get password(): string | undefined {
@@ -171,6 +215,10 @@ export class User extends AggregateRoot<UserProps> {
 
     get avatarUrl(): string | undefined {
         return this.props.avatarUrl;
+    }
+
+    get serviceId(): string {
+        return this.props.serviceId;
     }
 
     get createdAt(): Date {
@@ -214,6 +262,14 @@ export class User extends AggregateRoot<UserProps> {
         return R.ok();
     }
 
+    private setName(name?: string): void {
+        this.props.name = name?.trim() || undefined;
+    }
+
+    private setPhone(phone?: string): void {
+        this.props.phone = phone?.trim() || undefined;
+    }
+
     private setPassword(password?: string): void {
         this.props.password = password;
     }
@@ -233,6 +289,14 @@ export class User extends AggregateRoot<UserProps> {
 
     private setAvatarUrl(avatarUrl?: string): void {
         this.props.avatarUrl = avatarUrl;
+    }
+
+    private setServiceId(serviceId: string): Result<UserException, void> {
+        if (!serviceId)
+            return R.error(new UserException('Usuario deve ter serviço'));
+
+        this.props.serviceId = serviceId;
+        return R.ok();
     }
 
     private setUserRoles(userRoles: UserRole[]): Result<UserException, void> {

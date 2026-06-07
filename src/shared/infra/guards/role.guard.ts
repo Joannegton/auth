@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import {
     RoleId,
     ROLE_NAMES,
+    ROLES,
 } from 'src/modules/basic-auth/domain/constants/roles.constants';
 
 /**
@@ -50,9 +51,12 @@ export class RoleGuard implements CanActivate {
             throw new ForbiddenException('Autenticação necessária');
         }
 
-        // Obter roles do usuário (assumindo que vêm do JWT/token)
-        // Esperando um array de RoleIds (números)
+        // Obter roles do usuário (vêm do JWT/token)
         const userRoles: RoleId[] = user.roles || [];
+
+        if (userRoles.includes(ROLES.OWNER)) {
+            return true;
+        }
 
         // Verificar se usuário tem pelo menos uma das roles requeridas
         const hasRequiredRole = requiredRoles.some((role) =>

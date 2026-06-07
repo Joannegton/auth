@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { UserRepository } from '../../domain/repositories/user.repository';
 import type { RoleRepository } from '../../domain/repositories/role.repository';
+import type { ServiceRepository } from '../../domain/repositories/service.repository';
 import type { RequestInfo } from '../../domain/decorators/extract-request-info.decorator';
 import {
     TokenGeneratorServiceImpl,
@@ -9,6 +10,7 @@ import {
 import { AuditLogService } from '../../../../shared/infra/services/audit-log.service';
 import { R, ResultAsync } from '../../../../shared/domain/result';
 import {
+    InvalidPropsException,
     RepositoryException,
     RepositoryNoDataFoundException,
 } from '../../../../shared/domain/exceptions';
@@ -20,6 +22,7 @@ export interface GoogleLoginInput {
     email: string;
     displayName: string;
     avatarUrl?: string;
+    serviceId?: string;
 }
 
 export type GoogleLoginUseCaseExceptions =
@@ -33,6 +36,8 @@ export class GoogleLoginUseCase {
         private readonly userRepository: UserRepository,
         @Inject('RoleRepository')
         private readonly roleRepository: RoleRepository,
+        @Inject('ServiceRepository')
+        private readonly serviceRepository: ServiceRepository,
         private readonly tokenGenerator: TokenGeneratorServiceImpl,
         private readonly auditLog: AuditLogService,
     ) {}
@@ -41,6 +46,9 @@ export class GoogleLoginUseCase {
         props: GoogleLoginInput,
         requestInfo: RequestInfo,
     ): ResultAsync<GoogleLoginUseCaseExceptions, AuthTokens> {
+        if (!props.serviceId)
+            return R.error(new InvalidPropsException('Serviço é obrigatorio'));
+
         const userGoogle = await this.userRepository.findByGoogleId(
             props.googleId,
         );
@@ -66,15 +74,24 @@ export class GoogleLoginUseCase {
             );
         }
 
-        const role = await this.roleRepository.find(ROLES.USER);
-        if (role.isErr()) return R.error(role.error);
+        const rolePromise = this.roleRepository.find(ROLES.CLIENT);
+        const servicePromise = this.serviceRepository.findById(props.serviceId);
+
+        const [roleResult, serviceResult] = await Promise.all([
+            rolePromise,
+            servicePromise,
+        ]);
+
+        if (roleResult.isErr()) return R.error(roleResult.error);
+        if (serviceResult.isErr()) return R.error(serviceResult.error);
 
         const newUser = User.create({
             email: props.email,
             googleId: props.googleId,
             provider: 'google',
             avatarUrl: props.avatarUrl,
-            role: role.value,
+            role: roleResult.value,
+            serviceId: serviceResult.value.id.toString(),
         });
         if (newUser.isErr()) return R.error(newUser.error);
 
@@ -87,9 +104,14 @@ export class GoogleLoginUseCase {
     ): ResultAsync<GoogleLoginUseCaseExceptions, AuthTokens> {
         const { ipAddress, userAgent } = requestInfo;
 
+        const idsNumUserRoles = user.getIdsNumUserRolesService(user.serviceId);
+        if (idsNumUserRoles.isErr()) return R.error(idsNumUserRoles.error);
+
         const tokens = this.tokenGenerator.generateTokens(
             user.id.toString(),
             user.email,
+            user.serviceId,
+            idsNumUserRoles.value,
         );
 
         const addSession = user.addSession({

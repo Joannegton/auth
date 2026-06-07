@@ -1,0 +1,35 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: auth-demo-ingress
+  namespace: demos
+  labels:
+    app: auth-demo
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`auth-demo.joannegton.com`)
+      kind: Rule
+      services:
+        - name: auth-demo-svc
+          port: 80
+      middlewares:
+        - name: auth-demo-headers
+          namespace: demos
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: auth-demo-headers
+  namespace: demos
+spec:
+  headers:
+    customResponseHeaders:
+      X-Robots-Tag: "noindex, nofollow"
+      X-Demo-Environment: "true"
+    frameDeny: true
+    contentTypeNosniff: true
+    browserXssFilter: true

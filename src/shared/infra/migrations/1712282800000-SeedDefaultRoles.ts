@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
+import { uuidv7 } from 'uuidv7';
 
 /**
  * Migration para criar roles padrão do sistema
@@ -52,15 +53,20 @@ export class SeedDefaultRoles1712282800000 implements MigrationInterface {
             );
 
             if (exists.length === 0) {
-                const roleData = this.RoleData[roleIdNum as keyof typeof this.RoleData];
-                console.log(`✓ Inserindo role: ${roleData.name} (ID num: ${roleIdNum})`);
+                const roleData =
+                    this.RoleData[roleIdNum as keyof typeof this.RoleData];
+                const roleId = uuidv7();
+                console.log(
+                    `✓ Inserindo role: ${roleData.name} (ID num: ${roleIdNum})`,
+                );
                 await queryRunner.query(
                     `INSERT INTO roles (id, id_num, name, description, created_at, updated_at)
-                     VALUES (gen_random_uuid(), $1, $2, $3, now(), now())`,
-                    [roleIdNum, roleData.name, roleData.description],
+                     VALUES ($1, $2, $3, $4, now(), now())`,
+                    [roleId, roleIdNum, roleData.name, roleData.description],
                 );
             } else {
-                const roleData = this.RoleData[roleIdNum as keyof typeof this.RoleData];
+                const roleData =
+                    this.RoleData[roleIdNum as keyof typeof this.RoleData];
                 console.log(`⊘ Role já existe: ${roleData.name}`);
             }
         }

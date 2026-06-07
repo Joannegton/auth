@@ -23,10 +23,13 @@ export class UserMapper {
         const user = User.build(
             {
                 email: model.email,
+                name: model.name,
+                phone: model.phone,
                 password: model.password,
                 googleId: model.googleId,
                 provider: model.provider,
                 avatarUrl: model.avatarUrl,
+                serviceId: model.serviceId,
                 createdAt: model.createdAt,
                 updatedAt: model.updatedAt,
                 userRoles: userRoles.value,
@@ -44,10 +47,13 @@ export class UserMapper {
         const model = UserModel.build({
             id: domain.id.toString(),
             email: domain.email,
+            name: domain.name,
+            phone: domain.phone,
             password: domain.password,
             googleId: domain.googleId,
             provider: domain.provider,
             avatarUrl: domain.avatarUrl,
+            serviceId: domain.serviceId,
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,
             roles: this.userRolesMapper.toModelList(domain.userRoleList),

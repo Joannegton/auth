@@ -18,7 +18,7 @@ const typeOrmConfig = {
   database: process.env.DB_NAME || 'auth_db',
   autoLoadEntities: true,
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development',
+  logging: false,
 };
 
 @Module({

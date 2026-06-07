@@ -17,6 +17,7 @@ import {
 export interface LoginProps {
     email: string;
     password: string;
+    serviceId: string;
     infinitySession?: boolean;
 }
 
@@ -43,6 +44,7 @@ export class LoginUseCase {
 
         const user = await this.userRepository.findForLogin(
             props.email.toLowerCase().trim(),
+            props.serviceId,
         );
 
         if (user.isErr()) {
@@ -85,9 +87,15 @@ export class LoginUseCase {
             return R.error(new RepositoryException('email ou senha inválidos'));
         }
 
+        const roleIds = user.value.getIdsNumUserRolesService(props.serviceId);
+        if (roleIds.isErr()) return R.error(roleIds.error);
+
         const tokens = this.tokenGenerator.generateTokens(
             user.value.id.toString(),
             user.value.email,
+            user.value.serviceId,
+            roleIds.value,
+            { name: user.value.name, phone: user.value.phone },
         );
 
         const addSession = user.value.addSession({

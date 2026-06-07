@@ -10,8 +10,14 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'auth_db',
-    entities: ['src/modules/**/infra/models/*.model.ts'],
-    migrations: ['src/shared/infra/migrations/*.ts'],
+    entities: [
+        'src/modules/**/infra/models/*.model.ts',
+        'dist/src/modules/**/infra/models/*.model.js',
+    ],
+    migrations: [
+        'src/shared/infra/migrations/*.ts',
+        'dist/src/shared/infra/migrations/*.js',
+    ],
     synchronize: false,
     logging: process.env.NODE_ENV === 'development',
 });

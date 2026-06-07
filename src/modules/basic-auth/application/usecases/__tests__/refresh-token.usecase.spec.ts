@@ -11,11 +11,13 @@ describe('RefreshTokenUseCase', () => {
     beforeEach(() => {
         mockUserRepository = {
             findById: jest.fn(),
+            save: jest.fn().mockResolvedValue(R.ok(undefined)),
         };
 
         mockTokenGenerator = {
             verifyToken: jest.fn(),
             generateTokens: jest.fn(),
+            getRefreshTokenExpiryDays: jest.fn().mockReturnValue(7),
         };
 
         mockAuditLog = {
@@ -35,6 +37,8 @@ describe('RefreshTokenUseCase', () => {
             const payload: TokenPayload = {
                 sub: 'user-123',
                 email: 'test@example.com',
+                serviceId: 'svc-1',
+                roles: [2],
                 iat: Math.floor(Date.now() / 1000),
                 exp: Math.floor(Date.now() / 1000) + 604800,  // 7 dias
             };
@@ -42,8 +46,16 @@ describe('RefreshTokenUseCase', () => {
             const user = {
                 id: 'user-123',
                 email: 'test@example.com',
+                name: 'Test',
+                phone: undefined,
+                serviceId: 'svc-1',
                 toString: () => 'user-123',
                 validateSession: jest.fn().mockReturnValue(true),
+                getIdsNumUserRolesService: jest.fn().mockReturnValue(R.ok([2])),
+                sessions: [
+                    { refreshToken: 'valid-refresh-token', infinity: false },
+                ],
+                addSession: jest.fn().mockReturnValue(R.ok(undefined)),
             };
 
             const newTokens = {
@@ -68,10 +80,11 @@ describe('RefreshTokenUseCase', () => {
             }
             expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
             expect(user.validateSession).toHaveBeenCalledWith('valid-refresh-token');
-            expect(mockTokenGenerator.generateTokens).toHaveBeenCalledWith(
-                'user-123',
-                'test@example.com',
+            // Rotação: a nova sessão é registrada com o NOVO refresh token e persistida.
+            expect(user.addSession).toHaveBeenCalledWith(
+                expect.objectContaining({ refreshToken: 'new-refresh-token' }),
             );
+            expect(mockUserRepository.save).toHaveBeenCalledWith(user);
             expect(mockAuditLog.logTokenRefresh).toHaveBeenCalledWith(
                 'user-123',
                 'unknown',

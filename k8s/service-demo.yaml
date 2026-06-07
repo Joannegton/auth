@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-demo-svc
+  namespace: demos
+  labels:
+    app: auth-demo
+spec:
+  selector:
+    app: auth-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP
+  type: ClusterIP

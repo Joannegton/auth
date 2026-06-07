@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: auth-demo-postgres-pvc
+  namespace: demos
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: auth-demo-postgres
+  namespace: demos
+  labels:
+    app: auth-demo-postgres
+spec:
+  serviceName: auth-demo-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-demo-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-demo-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: auth-demo-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-demo-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: auth_demo
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "auth_demo"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: auth-demo-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-demo-postgres
+  namespace: demos
+spec:
+  clusterIP: None
+  selector:
+    app: auth-demo-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

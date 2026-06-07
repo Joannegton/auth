@@ -5,18 +5,24 @@ import {
     UpdateDateColumn,
     Entity,
     OneToMany,
+    ManyToOne,
+    JoinColumn,
 } from 'typeorm';
 import { UserRoleModel } from './user-roles.model';
 import { SessionModel } from './session.model';
+import { ServiceModel } from './service.model';
 import { Model } from '../../../../shared/domain/model';
 
 export interface UserProps {
     id: string;
     email: string;
+    name?: string;
+    phone?: string;
     password?: string;
     googleId?: string;
     provider: string;
     avatarUrl?: string;
+    serviceId: string;
     createdAt: Date;
     updatedAt?: Date;
     roles: UserRoleModel[];
@@ -28,8 +34,14 @@ export class UserModel extends Model<UserProps> implements UserProps {
     @PrimaryColumn('uuid')
     id: string;
 
-    @Column({ name: 'email', type: 'varchar', unique: true })
+    @Column({ name: 'email', type: 'varchar' })
     email: string;
+
+    @Column({ name: 'name', type: 'varchar', nullable: true })
+    name: string;
+
+    @Column({ name: 'phone', type: 'varchar', nullable: true })
+    phone: string;
 
     @Column({ name: 'password', select: false, nullable: true })
     password: string;
@@ -42,6 +54,17 @@ export class UserModel extends Model<UserProps> implements UserProps {
 
     @Column({ name: 'avatar_url', nullable: true })
     avatarUrl: string;
+
+    @Column({ name: 'service_id', type: 'uuid' })
+    serviceId: string;
+
+    @ManyToOne(() => ServiceModel, (service) => service.users, {
+        eager: true,
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    })
+    @JoinColumn({ name: 'service_id' })
+    service: ServiceModel;
 
     @OneToMany(() => SessionModel, (session) => session.user, {
         cascade: ['insert', 'update'],

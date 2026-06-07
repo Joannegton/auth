@@ -1,6 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-google-oauth20';
+import type { Request } from 'express';
 import type { GoogleLoginInput } from '../../application/usecases/google-login.usecase';
 
 interface GoogleProfile {
@@ -25,6 +26,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
             callbackURL: process.env.GOOGLE_CALLBACK_URL,
             scope: ['email', 'profile'],
+            passReqToCallback: true,
         });
 
         if (
@@ -36,6 +38,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     }
 
     async validate(
+        req: Request,
         _accessToken: string,
         _refreshToken: string,
         profile: GoogleProfile,
@@ -43,7 +46,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         const email = profile.emails?.[0]?.value ?? profile._json?.email;
 
         if (!email) {
-            this.logger.warn(`[GoogleStrategy] Profile sem email: ${profile.id}`);
+            this.logger.warn(
+                `[GoogleStrategy] Profile sem email: ${profile.id}`,
+            );
             throw new UnauthorizedException('Email é obrigatório');
         }
 
@@ -52,6 +57,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             email,
             displayName: profile.displayName,
             avatarUrl: profile.photos?.[0]?.value,
+            serviceId: req.query?.serviceId as string,
         };
     }
 }

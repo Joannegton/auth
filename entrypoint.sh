@@ -36,7 +36,13 @@ node -e "
 "
 
 echo "Rodando migrations..."
-npm run migration:run || {
+node -e "
+  const { AppDataSource } = require('./dist/src/data-source');
+  AppDataSource.initialize()
+    .then(() => AppDataSource.runMigrations())
+    .then((ran) => { console.log('Migrations executadas:', ran.length); process.exit(0); })
+    .catch((err) => { console.error('Erro nas migrations:', err); process.exit(1); });
+" || {
   echo "✗ Erro ao rodar migrations"
   exit 1
 }

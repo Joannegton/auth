@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserModel } from '../models/user.model';
-import { SessionModel } from '../models/session.model';
-import { UserRoleModel } from '../models/user-roles.model';
-import { RoleModel } from '../models/role.model';
-import { R, Result, ResultAsync } from 'src/shared/domain/result';
+import { R, ResultAsync } from 'src/shared/domain/result';
 import {
     RepositoryException,
     RepositoryNoDataFoundException,
@@ -24,10 +21,6 @@ export class UserRepositoryImpl implements UserRepository {
     constructor(
         @InjectRepository(UserModel)
         private readonly userRepository: Repository<UserModel>,
-        @InjectRepository(UserRoleModel)
-        private readonly userRoleRepository: Repository<UserRoleModel>,
-        @InjectRepository(RoleModel)
-        private readonly roleRepository: Repository<RoleModel>,
         private readonly userMapper: UserMapper,
     ) {}
 
@@ -48,9 +41,13 @@ export class UserRepositoryImpl implements UserRepository {
         email: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { email },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.email = :email', { email })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -72,11 +69,56 @@ export class UserRepositoryImpl implements UserRepository {
         }
     }
 
+    async findByEmailAndService(
+        email: string,
+        serviceId: string,
+    ): ResultAsync<UserRepositoryExceptions, User> {
+        try {
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.email = :email AND user.service_id = :serviceId', {
+                    email,
+                    serviceId,
+                })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
+
+            if (!userModel) {
+                return R.error(
+                    new RepositoryNoDataFoundException(
+                        'Usuário não encontrado',
+                    ),
+                );
+            }
+
+            const user = this.userMapper.toDomain(userModel);
+            if (user.isErr()) return R.error(user.error);
+
+            return R.ok(user.value);
+        } catch (error) {
+            this.logger.error(
+                'Erro ao buscar usuário por email e serviço',
+                error,
+            );
+            return R.error(
+                new RepositoryException(
+                    'Erro ao buscar usuário por email e serviço',
+                ),
+            );
+        }
+    }
+
     async findById(id: string): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { id },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.id = :id', { id })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -102,9 +144,13 @@ export class UserRepositoryImpl implements UserRepository {
         googleId: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
-            const userModel = await this.userRepository.findOne({
-                where: { googleId },
-            });
+            const userModel = await this.userRepository
+                .createQueryBuilder('user')
+                .where('user.google_id = :googleId', { googleId })
+                .leftJoinAndSelect('user.sessions', 'sessions')
+                .leftJoinAndSelect('user.roles', 'roles')
+                .leftJoinAndSelect('roles.role', 'role')
+                .getOne();
 
             if (!userModel) {
                 return R.error(
@@ -128,11 +174,15 @@ export class UserRepositoryImpl implements UserRepository {
 
     async findForLogin(
         email: string,
+        serviceId: string,
     ): ResultAsync<UserRepositoryExceptions, User> {
         try {
             const userModel = await this.userRepository
                 .createQueryBuilder('user')
-                .where('user.email = :email', { email })
+                .where('user.email = :email AND user.service_id = :serviceId', {
+                    email,
+                    serviceId,
+                })
                 .leftJoinAndSelect('user.sessions', 'sessions')
                 .leftJoinAndSelect('user.roles', 'roles')
                 .leftJoinAndSelect('roles.role', 'role')

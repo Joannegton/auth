@@ -33,8 +33,8 @@ export class RepositoryNoDataFoundException extends Exception {
         public readonly criteria?: Record<string, unknown>,
     ) {
         const message = criteria
-            ? `${entity} not found matching criteria: ${JSON.stringify(criteria)}`
-            : `${entity} not found`;
+            ? `${entity} Não encontrado com filtros: ${JSON.stringify(criteria)}`
+            : `${entity} Não encontrado`;
         super(message);
         Object.setPrototypeOf(this, RepositoryNoDataFoundException.prototype);
     }

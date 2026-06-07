@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { UserModel } from './user.model';
 import { RoleModel } from './role.model';
+import { ServiceModel } from './service.model';
 import { Model } from '../../../../shared/domain/model';
 
 export interface UserRoleProps {
@@ -16,12 +17,13 @@ export interface UserRoleProps {
     userId: string;
     roleId: string;
     roleIdNum: number;
+    serviceId: string;
     assignedAt: Date;
     createdAt?: Date;
 }
 
 @Entity('user_roles')
-@Index(['userId', 'roleId'], { unique: true })
+@Index(['userId', 'roleId', 'serviceId'], { unique: true })
 export class UserRoleModel
     extends Model<UserRoleProps>
     implements UserRoleProps
@@ -56,6 +58,17 @@ export class UserRoleModel
         { name: 'role_id_num', referencedColumnName: 'idNum' },
     ])
     role: RoleModel;
+
+    @ManyToOne(() => ServiceModel, {
+        eager: true,
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    })
+    @JoinColumn({ name: 'service_id' })
+    service: ServiceModel;
+
+    @Column({ name: 'service_id', type: 'uuid' })
+    serviceId: string;
 
     @CreateDateColumn({ name: 'assigned_at', type: 'timestamptz' })
     assignedAt: Date;

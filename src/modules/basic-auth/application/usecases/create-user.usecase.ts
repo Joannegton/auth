@@ -36,11 +36,12 @@ export class CreateUserUseCase {
     async execute(
         props: CreateUserDto,
     ): ResultAsync<CreateUserUseCaseExceptions, void> {
-        const existingUserPromise = this.userRepository.findByEmail(
+        const existingUserPromise = this.userRepository.findByEmailAndService(
             props.email.trim().toLowerCase(),
+            props.serviceId,
         );
         const rolePromise = this.roleRepository.find(
-            props.roleIdNum || ROLES.USER,
+            props.roleIdNum || ROLES.CLIENT, // buscar roles no banco e adicionar uma coluna padrão na tabela para facilitar
         );
         const creatorPromise = props.creatorUserId
             ? this.userRepository.findById(props.creatorUserId)
@@ -91,6 +92,7 @@ export class CreateUserUseCase {
         const userRoleAssignResult =
             this.userRoleAssignmentPolicy.assignRoleToNewUser(
                 roleResult.value,
+                props.serviceId,
                 creator,
             );
         if (userRoleAssignResult.isErr())
@@ -101,8 +103,11 @@ export class CreateUserUseCase {
 
         const user = User.create({
             email: props.email,
+            name: props.name,
+            phone: props.phone,
             password: hashedPassword,
             provider: 'local',
+            serviceId: props.serviceId,
             role: roleResult.value,
         });
         if (user.isErr()) return R.error(user.error);

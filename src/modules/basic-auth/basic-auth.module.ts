@@ -6,11 +6,21 @@ import { CreateUserUseCase } from './application/usecases/create-user.usecase';
 import { LoginUseCase } from './application/usecases/login.usecase';
 import { RefreshTokenUseCase } from './application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from './application/usecases/logout.usecase';
+import { CreateWorkerUseCase } from './application/usecases/create-worker.usecase';
 import { GoogleLoginUseCase } from './application/usecases/google-login.usecase';
+import { ForgotPasswordUseCase } from './application/usecases/forgot-password.usecase';
+import { ResetPasswordUseCase } from './application/usecases/reset-password.usecase';
 import { UserModel } from './infra/models/user.model';
 import { SessionModel } from './infra/models/session.model';
 import { UserRoleModel } from './infra/models/user-roles.model';
 import { RoleModel } from './infra/models/role.model';
+import { ServiceModel } from './infra/models/service.model';
+import { PasswordResetCodeModel } from './infra/models/password-reset-code.model';
+import { PasswordResetCodeRepositoryImpl } from './infra/repositories/password-reset-code.repository';
+import { PASSWORD_RESET_CODE_REPOSITORY } from './domain/repositories/password-reset-code.repository';
+import { LogEmailService } from './infra/services/log-email.service';
+import { NodemailerEmailService } from './infra/services/nodemailer-email.service';
+import { EMAIL_SERVICE_TOKEN } from './domain/services/email.service';
 import { AuthController } from './application/controllers/auth.controller';
 import { GoogleAuthController } from './application/controllers/google-auth.controller';
 import { Policies } from './domain/policies';
@@ -20,6 +30,8 @@ import { TokenGeneratorServiceImpl } from './infra/services/token-generator.serv
 import { BcryptPasswordEncryptionService } from './infra/services/password-encryption.service';
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from './domain/services/password-encryption.service';
 import { GoogleStrategy } from './infra/strategies/google.strategy';
+import { CreateServiceUseCase } from './application/usecases/create-service.usecase';
+import { ServicesController } from './application/controllers/services.controller';
 
 @Module({
     imports: [
@@ -28,17 +40,38 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
             SessionModel,
             UserRoleModel,
             RoleModel,
+            ServiceModel,
+            PasswordResetCodeModel,
         ]),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         SharedModule,
     ],
-    controllers: [AuthController, GoogleAuthController],
+    controllers: [AuthController, GoogleAuthController, ServicesController],
     providers: [
         CreateUserUseCase,
         LoginUseCase,
         RefreshTokenUseCase,
         LogoutUseCase,
+        CreateWorkerUseCase,
+        CreateServiceUseCase,
         GoogleLoginUseCase,
+        ForgotPasswordUseCase,
+        ResetPasswordUseCase,
+        {
+            provide: PASSWORD_RESET_CODE_REPOSITORY,
+            useClass: PasswordResetCodeRepositoryImpl,
+        },
+        {
+            // Com EMAIL_USER/EMAIL_PASS configurados, envia de verdade (Gmail);
+            // sem credencial, mantém o adaptador de log (dev). useFactory (e não
+            // useClass com ternário) para a decisão rodar DEPOIS do dotenv,
+            // não no momento em que o módulo é importado.
+            provide: EMAIL_SERVICE_TOKEN,
+            useFactory: () =>
+                process.env.EMAIL_USER && process.env.EMAIL_PASS
+                    ? new NodemailerEmailService()
+                    : new LogEmailService(),
+        },
         TokenGeneratorServiceImpl,
         {
             provide: 'TokenGenerator',
@@ -66,6 +99,11 @@ import { GoogleStrategy } from './infra/strategies/google.strategy';
         ...Repositories,
         ...Mappers,
     ],
-    exports: ['UserRepository', 'RoleRepository', TokenGeneratorServiceImpl],
+    exports: [
+        'UserRepository',
+        'RoleRepository',
+        'ServiceRepository',
+        TokenGeneratorServiceImpl,
+    ],
 })
 export class BasicAuthModule {}
