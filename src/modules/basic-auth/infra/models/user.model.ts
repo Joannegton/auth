@@ -3,6 +3,7 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
+    DeleteDateColumn,
     Entity,
     OneToMany,
     ManyToOne,
@@ -87,4 +88,7 @@ export class UserModel extends Model<UserProps> implements UserProps {
 
     @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
     updatedAt: Date;
+
+    @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+    deletedAt: Date | null;
 }

@@ -172,6 +172,16 @@ export class UserRepositoryImpl implements UserRepository {
         }
     }
 
+    async softDeleteById(id: string): ResultAsync<RepositoryException, void> {
+        try {
+            await this.userRepository.softDelete(id);
+            return R.ok();
+        } catch (error) {
+            this.logger.error('Erro ao excluir conta do usuário', error);
+            return R.error(new RepositoryException('Erro ao excluir conta do usuário'));
+        }
+    }
+
     async findForLogin(
         email: string,
         serviceId: string,

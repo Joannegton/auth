@@ -31,6 +31,7 @@ import { BcryptPasswordEncryptionService } from './infra/services/password-encry
 import { PASSWORD_ENCRYPTION_SERVICE_TOKEN } from './domain/services/password-encryption.service';
 import { GoogleStrategy } from './infra/strategies/google.strategy';
 import { CreateServiceUseCase } from './application/usecases/create-service.usecase';
+import { DeleteAccountUseCase } from './application/usecases/delete-account.usecase';
 import { ServicesController } from './application/controllers/services.controller';
 
 @Module({
@@ -57,6 +58,7 @@ import { ServicesController } from './application/controllers/services.controlle
         GoogleLoginUseCase,
         ForgotPasswordUseCase,
         ResetPasswordUseCase,
+        DeleteAccountUseCase,
         {
             provide: PASSWORD_RESET_CODE_REPOSITORY,
             useClass: PasswordResetCodeRepositoryImpl,

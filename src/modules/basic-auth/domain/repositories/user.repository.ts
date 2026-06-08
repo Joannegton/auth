@@ -24,4 +24,5 @@ export interface UserRepository {
         email: string,
         serviceId: string,
     ): ResultAsync<UserRepositoryExceptions, User>;
+    softDeleteById(id: string): ResultAsync<RepositoryException, void>;
 }

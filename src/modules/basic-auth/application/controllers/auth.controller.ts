@@ -2,6 +2,7 @@ import {
     Controller as NestController,
     Post,
     Get,
+    Delete,
     Body,
     HttpCode,
     HttpStatus,
@@ -15,6 +16,7 @@ import { LoginUseCase } from '../../application/usecases/login.usecase';
 import { RefreshTokenUseCase } from '../../application/usecases/refresh-token.usecase';
 import { LogoutUseCase } from '../../application/usecases/logout.usecase';
 import { CreateWorkerUseCase } from '../usecases/create-worker.usecase';
+import { DeleteAccountUseCase } from '../usecases/delete-account.usecase';
 import { ForgotPasswordUseCase } from '../usecases/forgot-password.usecase';
 import { ResetPasswordUseCase } from '../usecases/reset-password.usecase';
 import { CreateUserDto } from '../dtos/create-user.dto';
@@ -43,6 +45,7 @@ export class AuthController extends Controller {
         private readonly forgotPasswordUseCase: ForgotPasswordUseCase,
         private readonly resetPasswordUseCase: ResetPasswordUseCase,
         private readonly tokenGenerator: TokenGeneratorServiceImpl,
+        private readonly deleteAccountUseCase: DeleteAccountUseCase,
     ) {
         super();
     }
@@ -161,6 +164,16 @@ export class AuthController extends Controller {
             dto.code,
             dto.newPassword,
         );
+        return this.buildResponse(result);
+    }
+
+    @ApiOperation({ summary: 'Excluir conta', description: 'Soft-deleta o usuário autenticado. Chamado internamente pelo beleze_server após validação de elegibilidade.' })
+    @ApiBearerAuth()
+    @Delete('account')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @UseGuards(JwtAuthGuard)
+    async deleteAccount(@ExtractUserId() userId: string) {
+        const result = await this.deleteAccountUseCase.execute(userId);
         return this.buildResponse(result);
     }
 
