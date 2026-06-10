@@ -22,6 +22,9 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
       CLIENT_REDIRECT_URL: ${CLIENT_REDIRECT_URL}
+      INITIAL_OWNER_EMAIL: ${INITIAL_OWNER_EMAIL:-}
+      INITIAL_OWNER_PASSWORD: ${INITIAL_OWNER_PASSWORD:-}
+      INITIAL_OWNER_NAME: ${INITIAL_OWNER_NAME:-Platform Owner}
     # Sem `ports:` de propósito — o auth é interno e NÃO é exposto no host.
     # Só serviços na rede `backend` alcançam ele em `auth-app:3001`.
     # `expose` é só documentação (na mesma rede já dá pra acessar qualquer porta).

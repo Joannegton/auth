@@ -25,7 +25,8 @@
     "migration:revert": "npm run typeorm migration:revert -- -d data-source.ts",
     "migration:show": "npm run typeorm migration:show -- -d data-source.ts",
     "db:setup": "npm run migration:run",
-    "db:reset": "npm run migration:revert && npm run migration:run"
+    "db:reset": "npm run migration:revert && npm run migration:run",
+    "setup:owner": "ts-node --transpile-only -r tsconfig-paths/register src/scripts/setup-owner.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
