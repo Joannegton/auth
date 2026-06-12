@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BasicAuthModule } from './modules/basic-auth/basic-auth.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { SharedModule } from './shared/shared.module';
 
 config();
@@ -33,6 +34,7 @@ const typeOrmConfig = {
     ]),
     SharedModule,
     BasicAuthModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
